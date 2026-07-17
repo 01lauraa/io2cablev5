@@ -1,0 +1,46 @@
+rk,group,procescode,omschrijving,fabricaat,type,aantal,AI,AO,DI,DO,SOFT,voltage,power_kw,current_a,va,bus_protocol,bus_naam,derden_flag,locatie,opmerking,source_ref
+RK071,Installaties op het dak,,Warmtepompcentrale (hoofdvoeding + condensor),Servex,SWP - DC - U562,1,0,0,2,0,98,,,,,Modbus RTU,Modbus1,true,op dak,475A voeding vanuit HVK zie specs Servex,IO:r1
+RK071,Installaties op het dak,,Warmtepompcentrale (secundaire voeding + verdamper),Servex,SWP - DC - U562,1,0,0,2,0,0,,,,,,,true,op dak,10A voeding vanuit HVK,IO:r2
+RK071,Installaties op het dak,,Tracing leidingen bovendaks,n.t.b.,24 meter @ 25 W/m,4,0,0,0,1,0,230,,,,,,false,op dak,optioneel vanuit regelkast,IO:r3
+RK071,Installaties op het dak,,kWh-meter wwarmtepompcentrale,n.t.b.,n.t.b.,1,0,0,0,0,8,,,,,Modbus RTU,Modbus1,false,op dak,,IO:r4
+RK071,,081RK_01,Regelkast,,,1,0,0,0,0,0,,,,,,,true,,,IO:r5
+RK071,Buffervat GKW,071TE_06,Temperatuur hoog buffer GKW,Belimo,01DT-1BR + A-22P-A26,1,1,0,0,0,0,,,,,,,false,,,IO:r8
+RK071,Buffervat GKW,071TE_07,Temperatuur midden/hoog buffer GKW,Belimo,01DT-1BR + A-22P-A26,1,1,0,0,0,0,,,,,,,false,,,IO:r9
+RK071,Buffervat GKW,071TE_08,Temperatuur midden/laag buffer GKW,Belimo,01DT-1BR + A-22P-A26,1,1,0,0,0,0,,,,,,,false,,,IO:r10
+RK071,Buffervat GKW,071TE_09,Temperatuur laag buffer GKW,Belimo,01DT-1BR + A-22P-A26,1,1,0,0,0,0,,,,,,,false,,,IO:r11
+RK071,Installaties buiten bij buffervat,071TE_14,Temperatuur hoog buffer LT-CV,Belimo,01DT-1BR + A-22P-A26,1,1,0,0,0,0,,,,,,,false,Buiten TR,,IO:r12
+RK071,Installaties buiten bij buffervat,071TE_15,Temperatuur midden buffer LT-CV,Belimo,01DT-1BR + A-22P-A26,1,1,0,0,0,0,,,,,,,false,Buiten TR,,IO:r13
+RK071,Installaties buiten bij buffervat,071TE_16,Temperatuur laag buffer LT-CV,Belimo,01DT-1BR + A-22P-A26,1,1,0,0,0,0,,,,,,,false,Buiten TR,,IO:r14
+RK071,Buffervat GKW,071PT_01,Systeemdruk GKW,Belimo,22WP-119,1,1,0,0,0,0,24V DC,,,0.9,,,false,,,IO:r15
+RK071,Buffervat CV,071PT_11,Systeemdruk LT_CV,Belimo,22WP-119,1,1,0,0,0,0,24V DC,,,0.9,,,false,,,IO:r16
+RK071,Buffervat GKW,071FT_01,Flowmeting energiemeter GKW,E+H,Promag W400 DN100,1,1,0,0,0,0,24V DC,,,30,,,false,,,IO:r17
+RK071,Buffervat CV,071FT_11,Flowmeting energiemeter MT-CV,E+H,Promag W300 DN100,1,1,0,0,0,0,24V DC,,,30,,,false,,,IO:r18
+RK071,Buffervat GKW,071EM_01,Energiemeter levering GKW,E+H,RH33-AA2A,1,0,0,0,0,8,24V DC,,,24,Modbus RTU,Modbus1,false,,,IO:r19
+RK071,Buffervat CV,071EM_11,Energiemeter levering MT_CV,E+H,RH33-AA2A,1,0,0,0,0,8,24V DC,,,24,Modbus RTU,Modbus1,false,,,IO:r20
+RK071,Buffervat GKW,071TT_01,Temperatuur centrale aanvoer energiemeter GKW,E+H,Optie C1 - PT100,1,0,0,0,0,0,,,,,,,false,,,IO:r21
+RK071,Buffervat GKW,071TT_02,Temperatuur centrale retour energiemeter GKW,E+H,Optie C1 - PT100,1,0,0,0,0,0,,,,,,,false,,,IO:r22
+RK071,Buffervat CV,071TT_11,Temperatuur centrale aanvoer energiemeter MT_CV,E+H,Optie C1 - PT100,1,0,0,0,0,0,,,,,,,false,,,IO:r23
+RK071,Buffervat CV,071TT_12,Temperatuur centrale retour energiemeter MT_CV,E+H,Optie C1 - PT100,1,0,0,0,0,0,,,,,,,false,,,IO:r24
+RK071,Buffervat GKW,071TE_01,Temperatuur centrale aanvoer GKW 1,Belimo,01DT-1BN + A-22P-A22,1,1,0,0,0,0,,,,,,,false,,,IO:r25
+RK071,Buffervat CV,071TE_11,Temperatuur centrale aanvoer CV_MT,Belimo,01DT-1BN + A-22P-A22,1,1,0,0,0,0,,,,,,,false,,,IO:r26
+RK071,Transport GKW,081CP_01,GKW transportpomp 1,Grundfos,TPE3 65-280,1,0,0,0,0,15,400,3.0,5.8,,Modbus RTU,Modbus1,false,,,IO:r27
+RK071,Transport GKW,081CP_02,GKW transportpomp 2,Grundfos,TPE3 65-280,1,0,0,0,0,15,400,3.0,5.8,,Modbus RTU,Modbus1,false,,,IO:r28
+RK071,Transport CV,081CP_11,CV transportpomp 1,Grundfos,TPE3 65-280,1,0,0,0,0,15,400,3.0,5.8,,Modbus RTU,Modbus1,false,,,IO:r29
+RK071,Transport CV,081CP_12,CV transportpomp 2,Grundfos,TPE3 65-280,1,0,0,0,0,15,400,3.0,5.8,,Modbus RTU,Modbus1,false,,,IO:r30
+RK071,Transport GKW,081PDT01,Drukverschil transport GKW,Belimo,22WDP-114,1,1,0,0,0,0,24V DC,,,0.37,,,false,,,IO:r35
+RK071,Transport CV,081PDT11,Drukverschil transport CV,Belimo,22WDP-114,1,1,0,0,0,0,24V DC,,,0.37,,,false,,,IO:r36
+RK071,Transport GKW,081RA_01,Blokkeerafsluiter 1 transport GKW,Belimo,D665NL / GR24A-SR-5,1,1,1,0,0,0,24V DC,,,6,,,false,,,IO:r37
+RK071,Transport GKW,081RA_02,Blokkeerafsluiter 2 transport GKW,Belimo,D665NL / GR24A-SR-5,1,1,1,0,0,0,24V DC,,,6,,,false,,,IO:r38
+RK071,Transport CV,081RA_11,Blokkeerafsluiter 1 transport CV,Belimo,D665NL / GR24A-SR-5,1,1,1,0,0,0,24V DC,,,6,,,false,,,IO:r39
+RK071,Transport CV,081RA_12,Blokkeerafsluiter 2 transport CV,Belimo,D665NL / GR24A-SR-5,1,1,1,0,0,0,24V DC,,,6,,,false,,,IO:r40
+RK071,Deelstroomfilter,081PDT12,Drukverschil hoofdstroomfilter GKW,Belimo,22WDP-114,1,1,0,0,0,0,24V DC,,,0.37,,,false,,,IO:r45a
+RK071,Deelstroomfilter,081PDT12,Drukverschil hoofdstroomfilter CV,Belimo,22WDP-114,1,1,0,0,0,0,24V DC,,,0.37,,,false,,,IO:r45b
+RK071,Deelstroomfilter,081CP_03,Circ.pomp deelstroomfilter GKW,Grundfos,TPE3 32-80,1,0,0,0,0,15,230,0.33,1.55,,Modbus RTU,Modbus1,false,,,IO:r47
+RK071,Deelstroomfilter,081PDT02,Drukverschil deelstroomfilter GKW,Belimo,22WDP-114,1,1,0,0,0,0,24V DC,,,0.37,,,false,,,IO:r49
+RK071,Deelstroomfilter,081CP_13,Circ.pomp deelstroomfilter CV,Grundfos,TPE3 32-80,1,0,0,0,0,15,230,0.33,1.55,,Modbus RTU,Modbus1,false,,,IO:r51
+RK071,Deelstroomfilter,081PDT12,Drukverschil deelstroomfilter CV,Belimo,22WDP-114,1,1,0,0,0,0,24V DC,,,0.37,,,false,,,IO:r53
+RK071,Elektrische ketel CV-MT,091WWK22,Elektrische ketel CV-MT,Varmebaronen,EP 250 G2,1,1,1,1,0,0,400,250,,,,,true,,400V voeding vanuit E-verdeler,IO:r55
+RK071,Elektrische ketel CV-MT,091TE_21,Temperatuur uittrede E-ketel / TSA,Belimo,01DT-1BL + A-22P-A20,2,1,0,0,0,0,,,,,,,false,,,IO:r57
+RK071,Elektrische ketel CV-MT,091TE_22,Temperatuur intrede E-ketel / TSA,Belimo,01DT-1BL + A-22P-A20,2,1,0,0,0,0,,,,,,,false,,,IO:r58
+RK071,Elektrische ketel CV-MT,091CP_21,Circulaite pomp 1,Grundfos,MAGNA 3 65-80F,1,0,0,0,0,15,230,0.46,2.11,,Modbus RTU,Modbus1,false,,,IO:r64
+RK071,Korex,071EV_01,Drukstap ontgasser,Korex,AIR-SEP,1,0,0,1,0,24,230,0.75,4,,Modbus IP,IP1,false,,,IO:r73

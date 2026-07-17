@@ -1,0 +1,183 @@
+"""Step 1 — Ingest & normalization.
+
+Layer A (here): deterministic parse of structured Excel function lists (functielijsten)
+via a
+per-client column mapping. Fully reproducible, no AI.
+
+Layer B (outside this module): messy inputs (PDFs, scans, free text) are
+normalized with AI assistance *into the same canonical CSV*, then loaded with
+load_normalized(). The normalized table is the contract; it is ALWAYS written
+out as normalized_review.xlsx for mandatory human sign-off before Step 2.
+"""
+import csv
+import re
+from openpyxl import load_workbook, Workbook
+from openpyxl.styles import Font, PatternFill
+from .schema import NormRow, NORM_COLUMNS
+
+# Default header synonyms -> canonical field. Override per client in mappings/*.
+DEFAULT_HEADER_MAP = {
+    "omschrijving": "omschrijving", "beschrijving": "omschrijving",
+    "procescode": "procescode", "proces code": "procescode", "ref": "procescode",
+    "fabricaat": "fabricaat", "type": "type", "aantal": "aantal",
+    "analoge ingang": "AI", "analoog in": "AI", "ai": "AI",
+    "analoge uitgang": "AO", "analoog uit": "AO", "au": "AO", "ao": "AO",
+    "digitale ingang": "DI", "digitaal in": "DI", "di": "DI",
+    "digitale uitgang": "DO", "digitaal uit": "DO", "do": "DO",
+    "bedrijfmelding": "DI_bedrijf", "bedrijf": "DI_bedrijf",
+    "storingsmelding": "DI_storing", "storing": "DI_storing",
+    "statusmelding": "DI_status", "status": "DI_status",
+    "io bus-punt": "SOFT", "soft": "SOFT", "bus-punt": "SOFT",
+    "data": "bus_protocol", "busprotocol": "bus_protocol", "databus": "bus_naam",
+    "spanning": "voltage", "voeding (v)": "voltage", "v": "voltage",
+    "vermogen": "power_kw", "vermogen (kw)": "power_kw", "kw": "power_kw",
+    "stroom": "current_a", "stroom (nom)": "current_a", "a": "current_a",
+    "va": "va", "opmerking": "opmerking", "kg": "kg", "m&r": "mr_flag",
+}
+
+DERDEN_PAT = re.compile(
+    r"derden|derde|vanuit hvk|vanuit e-verdeler|uit e-installatie|vanuit bmc", re.I)
+
+
+ERR_TOKENS = ("#VALUE!", "#REF!", "#N/A", "#DIV", "#NAME")
+
+
+def _num(v):
+    """Parse an I/O count. '*1' style markers -> 1. Excel error tokens -> 0
+    (the caller records a data-quality note). Returns (value, was_error)."""
+    if v in (None, "", "-", "x", "X"):
+        return 0
+    s = str(v).strip()
+    if s.startswith("*"):
+        try:
+            return int(s[1:] or 1)
+        except ValueError:
+            return 1
+    if any(s.startswith(t[:2]) and t in s for t in ERR_TOKENS) or s.startswith("#"):
+        return 0
+    try:
+        return int(float(s.replace(",", ".")))
+    except ValueError:
+        return 0
+
+
+def _is_err(v):
+    return isinstance(v, str) and v.strip().startswith("#")
+
+
+def _fnum(v):
+    if v in (None, "", "-"):
+        return None
+    try:
+        return float(str(v).replace(",", "."))
+    except ValueError:
+        return None
+
+
+def parse_excel(path, rk="RK?", header_map=None, sheet=None, mr_only=True):
+    """Layer A: parse a structured function list. Detects the header row by scoring
+    against the header map; carries group headers down; keeps provenance."""
+    hmap = {**DEFAULT_HEADER_MAP, **(header_map or {})}
+    wb = load_workbook(path, data_only=True)
+    ws = wb[sheet] if sheet else wb.active
+    grid = list(ws.iter_rows(values_only=True))
+
+    def score(row):
+        return sum(1 for c in row if c and str(c).strip().lower() in hmap)
+    hdr_i = max(range(min(len(grid), 30)), key=lambda i: score(grid[i]))
+    if score(grid[hdr_i]) < 3:
+        raise ValueError(f"No recognizable header row in {path}; supply a header_map.")
+    cols = {}
+    for j, c in enumerate(grid[hdr_i]):
+        key = str(c).strip().lower() if c else ""
+        if key in hmap:
+            cols.setdefault(hmap[key], j)
+
+    rows, group = [], ""
+    for i, r in enumerate(grid[hdr_i + 1:], start=hdr_i + 2):
+        def get(f):
+            return r[cols[f]] if f in cols and cols[f] < len(r) else None
+        desc = str(get("omschrijving") or "").strip()
+        if not desc:
+            continue
+        if "mr_flag" in cols:
+            if mr_only and str(get("mr_flag") or "").strip().lower() != "ja":
+                # A non-M&R row is either a GROUP HEADER or an ACCESSORY (valve,
+                # meetpunt, safety kit, TSA). Only a bare row -- no procescode, no
+                # manufacturer, no type, no I/O -- is a header. Accessories carry
+                # equipment data and must never become section names.
+                # Evidence: Duitslandlaan/Fonkel emitted sections 'safety kit',
+                # 'TSA PN16', 'Deelstroomfilter Deel-SEP GKW' from accessory rows.
+                if (not get("procescode") and not get("fabricaat") and not get("type")
+                        and not any(_num(get(f)) for f in ("AI", "AO", "DI", "DO"))):
+                    group = desc
+                continue
+        else:
+            # layout without M&R column (e.g. Coneco): a row with no quantity and
+            # no I/O and no bus is a group header
+            if not get("aantal") and not get("procescode") and not get("bus_protocol")                and not any(_num(get(f)) for f in ("AI", "AO", "DI", "DO", "SOFT")):
+                group = desc
+                continue
+        bad = [f for f in ("AI", "AO", "DI", "DO", "SOFT") if _is_err(get(f))]
+        di = _num(get("DI")) + _num(get("DI_bedrijf")) + _num(get("DI_storing")) + _num(get("DI_status"))
+        row = NormRow(
+            rk=rk, group=group, procescode=str(get("procescode") or "").strip(),
+            omschrijving=desc, fabricaat=str(get("fabricaat") or "").strip(),
+            type=str(get("type") or "").strip(), aantal=_num(get("aantal")) or 1,
+            AI=_num(get("AI")), AO=_num(get("AO")), DI=di, DO=_num(get("DO")),
+            SOFT=_num(get("SOFT")),
+            voltage=str(get("voltage") or "").strip(),
+            power_kw=_fnum(get("power_kw")), current_a=_fnum(get("current_a")),
+            va=_fnum(get("va")),
+            bus_protocol=str(get("bus_protocol") or "").strip(),
+            bus_naam=str(get("bus_naam") or "").strip(),
+            opmerking=str(get("opmerking") or "").strip(),
+            source_ref=f"{path}:{ws.title}:r{i}",
+        )
+        if bad:
+            row.opmerking = (row.opmerking + f" [!formula errors in {','.join(bad)} — correct in review]").strip()
+        row.derden_flag = bool(DERDEN_PAT.search(row.opmerking + " " + desc))
+        if re.search(r"dak|bovendaks", f"{group} {desc} {row.opmerking}", re.I):
+            row.locatie = "op dak"
+        rows.append(row)
+    return rows
+
+
+def load_normalized(path):
+    """Load the canonical CSV (Layer B output or a reviewed/corrected table)."""
+    out = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for d in csv.DictReader(f):
+            row = NormRow()
+            for k, v in d.items():
+                if k not in NORM_COLUMNS or v is None:
+                    continue
+                cur = getattr(row, k)
+                if isinstance(cur, bool):
+                    setattr(row, k, str(v).strip().lower() in ("1", "true", "ja", "yes"))
+                elif isinstance(cur, int):
+                    setattr(row, k, _num(v))
+                elif k in ("power_kw", "current_a", "va"):
+                    setattr(row, k, _fnum(v))
+                else:
+                    setattr(row, k, str(v).strip())
+            out.append(row)
+    return out
+
+
+def write_review(rows, path):
+    """Mandatory human-review file: the full normalized table, one row per input row."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Normalized"
+    ws.append(NORM_COLUMNS)
+    for c in ws[1]:
+        c.font = Font(bold=True, color="FFFFFF", name="Arial", size=10)
+        c.fill = PatternFill("solid", start_color="1F4E78")
+    for r in rows:
+        d = r.as_dict()
+        ws.append([d[c] for c in NORM_COLUMNS])
+    for col, w in zip("ABCDEFG", (8, 22, 12, 44, 14, 30, 7)):
+        ws.column_dimensions[col].width = w
+    ws.freeze_panes = "A2"
+    wb.save(path)

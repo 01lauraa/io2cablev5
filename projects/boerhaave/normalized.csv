@@ -1,0 +1,32 @@
+rk,group,procescode,omschrijving,fabricaat,type,aantal,AI,AO,DI,DO,SOFT,voltage,power_kw,current_a,va,bus_protocol,bus_naam,derden_flag,locatie,opmerking,source_ref
+RK03,Warmtepomp 1,,Warmtepomp 1,,,1,0,0,0,0,20,,,,,Modbus RTU,RS485-1,true,,Voeding lev. derden; reeds aangesloten,IO_cut:r5
+RK03,Warmtepomp 1,,Elektrameter warmtepomp,,,1,0,0,0,0,0,,,,,Modbus RTU,RS485-2,false,,in E verdeler,IO_cut:r6
+RK03,Warmtepomp 1,,Energiemeter WP,,,1,0,0,0,0,5,24V DC,,,,Modbus RTU,RS485-2,true,,Levering derden Voorkeur in MWh/kWh,IO_cut:r9
+RK03,Warmtepomp 1,,Smoorafsluiter aanvoer CV WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r10
+RK03,Warmtepomp 1,,Smoorafsluiter retour CV WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r11
+RK03,Warmtepomp 1,,Smoorafsluiter aanvoer GKW WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r12
+RK03,Warmtepomp 1,,Smoorafsluiter retour GKW WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r13
+RK03,Warmtepomp 1,,Leidingverwarming (tracing),,,1,0,0,0,1,0,230,,10,,,,false,,Voeding tracing 230V 10A geschakeld,IO_cut:r14
+RK03,Warmtepomp 2,,Warmtepomp 2,,,1,0,0,0,0,20,,,,,Modbus RTU,RS485-1,true,,Voeding lev. derden,IO_cut:r16
+RK03,Warmtepomp 2,,Elektrameter warmtepomp,,,1,0,0,0,0,0,,,,,Modbus RTU,RS485-2,false,,in E verdeler,IO_cut:r17
+RK03,Warmtepomp 2,,Energiemeter WP,,,1,0,0,0,0,5,24V DC,,,,Modbus RTU,RS485-2,true,,Levering derden Voorkeur in MWh/kWh,IO_cut:r20
+RK03,Warmtepomp 2,,Smoorafsluiter aanvoer CV WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r21
+RK03,Warmtepomp 2,,Smoorafsluiter retour CV WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r22
+RK03,Warmtepomp 2,,Smoorafsluiter aanvoer GKW WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r23
+RK03,Warmtepomp 2,,Smoorafsluiter retour GKW WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r24
+RK03,Warmtepomp 2,,Leidingverwarming (tracing),,,1,0,0,0,1,0,230,,10,,,,false,,Voeding tracing 230V 10A geschakeld,IO_cut:r25
+RK03,Warmtepomp 3,,Warmtepomp 3,,,1,0,0,0,0,20,,,,,Modbus RTU,RS485-1,true,,Voeding lev. derden,IO_cut:r27
+RK03,Warmtepomp 3,,Elektrameter warmtepomp,,,1,0,0,0,0,0,,,,,Modbus RTU,RS485-2,false,,in E verdeler,IO_cut:r28
+RK03,Warmtepomp 3,,Energiemeter WP,,,1,0,0,0,0,5,24V DC,,,,Modbus RTU,RS485-2,true,,Levering derden Voorkeur in MWh/kWh,IO_cut:r31
+RK03,Warmtepomp 3,,Smoorafsluiter aanvoer CV WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r32
+RK03,Warmtepomp 3,,Smoorafsluiter retour CV WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r33
+RK03,Warmtepomp 3,,Smoorafsluiter aanvoer GKW WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r34
+RK03,Warmtepomp 3,,Smoorafsluiter retour GKW WP,Siemens,SAL81.00T40/ASC10.51,1,0,0,1,1,0,,,,,,,false,,2-weg DN** Hulprelais 24V/230VAC,IO_cut:r35
+RK03,Warmtepomp 3,,Leidingverwarming (tracing),,,1,0,0,0,1,0,230,,10,,,,false,,Voeding tracing 230V 10A geschakeld,IO_cut:r36
+RK03,Buffervat GKW,,Centrale aanvoertemperatuuropnemer,Siemens,QAE2120.010,1,1,0,0,0,0,,,,,,,false,,voor buffervat,IO_cut:r38
+RK03,Buffervat GKW,,Centrale retourtemperatuuropnemer,Siemens,QAE2120.010,1,1,0,0,0,0,,,,,,,false,,na buffervat,IO_cut:r39
+RK03,Buffervat GKW,,Temperatuuropnemer buffervat boven,Siemens,QAP22/ALT-SB280,1,1,0,0,0,0,,,,,,,false,,,IO_cut:r40
+RK03,Buffervat GKW,,Temperatuuropnemer buffervat midden,Siemens,QAP22/ALT-SB280,1,1,0,0,0,0,,,,,,,false,,,IO_cut:r41
+RK03,Buffervat GKW,,Temperatuuropnemer buffervat onder,Siemens,QAP22/ALT-SB280,1,1,0,0,0,0,,,,,,,false,,,IO_cut:r42
+RK03,Buffervat GKW,,Aanvoertemperatuuropnemer na buffervat,Siemens,QAE2120.010,1,1,0,0,0,0,,,,,,,false,,,IO_cut:r43
+RK03,Buffervat GKW,,Retourtemperatuuropnemer na buffervat,Siemens,QAE2120.010,1,1,0,0,0,0,,,,,,,false,,,IO_cut:r44
