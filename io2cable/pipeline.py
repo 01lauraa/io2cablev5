@@ -64,9 +64,20 @@ def main(argv=None):
     ap.add_argument("--input", required=True, help=".xlsx function list or normalized .csv")
     ap.add_argument("--header-map", default=None,
                     help="config/header_map_<client>.xlsx for a non-standard column layout")
+    ap.add_argument("--sheet", default=None,
+                    help="worksheet name; default = the workbook's active sheet. "
+                         "Multi-sheet functielijsten (RK01/RK02/N) are run one sheet at a time.")
+    ap.add_argument("--list-sheets", action="store_true",
+                    help="print the worksheet names of --input and exit")
     ap.add_argument("--out", default="out")
     ap.add_argument("--rk", default=None)
     args = ap.parse_args(argv)
+
+    if args.list_sheets:
+        from openpyxl import load_workbook as _lw
+        for s in _lw(args.input, read_only=True).sheetnames:
+            print(s)
+        return
 
     cfg = load_config(args.config)
     missing = [p for p in ("brandklasse",) if not str(cfg.parameters.get(p, "")).strip()]
@@ -79,7 +90,8 @@ def main(argv=None):
         norm = ingest.load_normalized(args.input)
     else:
         hmap = load_header_map(args.header_map) if args.header_map else None
-        norm = ingest.parse_excel(args.input, rk=args.rk or "RK?", header_map=hmap)
+        norm = ingest.parse_excel(args.input, rk=args.rk or "RK?", header_map=hmap,
+                                  sheet=args.sheet)
     ingest.write_review(norm, os.path.join(args.out, "normalized_review.xlsx"))
 
     classified = classify.classify(norm, cfg)
