@@ -1,0 +1,5 @@
+Confirm third-party (derden) scope: 'Warmtepomp 1' (Voeding lev. derden; reeds aangesloten)
+Confirm third-party (derden) scope: 'Energiemeter WP' (Levering derden Voorkeur in MWh/kWh)
+Tracing scope: precedent = Erco feeds from the RK; the input remark may differ
+Confirm third-party (derden) scope: 'Warmtepomp 2' (Voeding lev. derden)
+Confirm third-party (derden) scope: 'Warmtepomp 3' (Voeding lev. derden)

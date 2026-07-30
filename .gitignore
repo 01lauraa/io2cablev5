@@ -1,0 +1,12 @@
+@"
+__pycache__/
+*.pyc
+*.bak
+*.bak2
+*.bak3
+out_blind/
+out_draft/
+out_b2ca/
+projects/*/out_test/
+~`$*.xlsx
+"@ | Set-Content .gitignore -Encoding utf8

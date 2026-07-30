@@ -25,7 +25,7 @@ def classify_row(norm, cfg):
             seen.add(ftype)
 
     # DERDEN is a scope attribute, not a device class: never let it be primary
-    if len(hits) > 1 and (hits[0] == "DERDEN" or (hits[0] == "REGELKAST" and "regelkast" not in norm.omschrijving.lower())):
+    if len(hits) > 1 and hits[0] == "DERDEN":
         hits.append(hits.pop(0))
 
     # I/O-signature fallbacks when the dictionary is silent

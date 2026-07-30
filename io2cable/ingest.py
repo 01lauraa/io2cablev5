@@ -65,6 +65,35 @@ def _is_err(v):
     return isinstance(v, str) and v.strip().startswith("#")
 
 
+def _parse_electrical_spec(text):
+    """Extract (voltage, current_a, power_kw) from free-text electrical specs, e.g.
+    '230vac/6A' -> ('230', 6.0, None); '400V/10A/4kW' -> ('400', 10.0, 4.0);
+    '24Vac/0-10VDC' -> ('24', None, None); 'EC,400V/2,2kW' -> ('400', None, 2.2).
+    Dutch decimal commas handled. Voltage stays as a string (schema field is str),
+    current_a and power_kw are floats (schema fields are Optional[float])."""
+    if not text:
+        return "", None, None
+    t = str(text)
+    voltage = ""
+    current = power = None
+    m = re.search(r"(\d{2,3})\s*v(?:ac|dc)?\b", t, re.I)
+    if m:
+        voltage = m.group(1)
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*a\b(?!c)", t, re.I)
+    if m:
+        try:
+            current = float(m.group(1).replace(",", "."))
+        except ValueError:
+            pass
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*kw\b", t, re.I)
+    if m:
+        try:
+            power = float(m.group(1).replace(",", "."))
+        except ValueError:
+            pass
+    return voltage, current, power
+
+
 def _fnum(v):
     if v in (None, "", "-"):
         return None
@@ -134,6 +163,25 @@ def parse_excel(path, rk="RK?", header_map=None, sheet=None, mr_only=True):
             opmerking=str(get("opmerking") or "").strip(),
             source_ref=f"{path}:{ws.title}:r{i}",
         )
+        row.regelkast_spec = str(get("regelkast_spec") or "").strip()
+        if not row.voltage and not row.power_kw and not row.current_a:
+            # Layouts with no dedicated U/I/P columns (Append1) embed the electrical
+            # spec as free text in Opmerking: '230vac/6A', '400V/10A/4kW',
+            # '24Vac/0-10VDC', 'EC,400V/2,2kW'. Parse it from THERE ONLY -- never
+            # from 'toevoeging', which can coincidentally contain a bare voltage
+            # ('Spanning aanwezig' -> toevoeging='230V') describing a monitored
+            # rail, not a device's own feed requirement.
+            v, i_, p = _parse_electrical_spec(row.opmerking)
+            if v: row.voltage = v
+            if i_: row.current_a = i_
+            if p: row.power_kw = p
+        if not row.voltage and row.regelkast_spec.lower().startswith("voeding"):
+            # Coneco layouts put the electrical spec in the panel column and leave U
+            # empty ('Voeding pomp 230V max 1kW'); the spec string IS the specification.
+            # Evidence: Tilburg PR20267273 -- 14/24 feed rows have voltage ONLY here.
+            m = re.search(r"(\d{3})\s*v", row.regelkast_spec.lower())
+            if m and m.group(1) in ("230", "400"):
+                row.voltage = m.group(1)
         if bad:
             row.opmerking = (row.opmerking + f" [!formula errors in {','.join(bad)} — correct in review]").strip()
         row.derden_flag = bool(DERDEN_PAT.search(row.opmerking + " " + desc))

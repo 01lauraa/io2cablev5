@@ -20,11 +20,6 @@ DOCUMENTED DEVIATIONS (accepted, not bugs):
 - Blokkeerafsluiter Serie-/Parallelbedrijf rows (081RA_11/12 duplicates) are
   omitted from the fixture: the manual lists 4 regelafsluiters total, matching
   the transport valves only.
-  - Tracing feed: the manual's separate "Tracing" page carries 1 feed + 2 cables.
-  Evaluation is on the set of cables, not their page, so the tracing voeding is
-  expected in this list. Counts raised 2->3 (op dak) and 4->5 (3G2,5). Previously
-  masked: 'optioneel vanuit regelkast' misclassified the row as a panel row,
-  which suppressed the feed via the REGELKAST early-return.
 """
 import subprocess
 import sys
@@ -62,7 +57,7 @@ checks.append(ok)
 
 # location banners resolved into the bekabeling-naar column
 checks.append(has("Buiten TR", 3))          # LT-CV buffer temps
-checks.append(has("op dak", 3))             # WP bus + meldingen
+checks.append(has("op dak", 2))             # WP bus + meldingen
 
 # --- Voedingen + totals ----------------------------------------------------
 checks.append(has("Kabel levering derde totaan RK, aansluiten kastzijde Erco", 2))  # RK + brandmelding
@@ -75,7 +70,7 @@ checks.append(has("JOBA ST.STR B2CA HCHJZ 5X1 MT", 13))   # druk/flow/pdt/EM-voe
 checks.append(has("JOBA STSTR B2CA HCHJZ 7X1 MT", 4))     # blokkeerafsluiters
 checks.append(has("JOBA HCH-JZ 12X1 B2CA MT", 1))         # WP meldingen — ONE, not two
 checks.append(has("DRAK HULT B2CA 4G2,5 MT", 4))          # 400V transport pumps
-checks.append(has("DRAK HULT B2CA 3G2,5 MT", 5))          # 230V circ/deelstroom/korex
+checks.append(has("DRAK HULT B2CA 3G2,5 MT", 4))          # 230V circ/deelstroom/korex
 checks.append(has("Via aansluitsnoer van 2 meter op meter", 4))
 checks.append(has("BMS Cable 2x2x24AWG - R1319 - B2ca s1,d0,a1 Violet HA500", 11))
 checks.append(has("doorlussen", 9))          # 11 bus cables, 2 chain heads

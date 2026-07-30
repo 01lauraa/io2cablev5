@@ -6,7 +6,7 @@ NORM_COLUMNS = [
     "rk", "group", "procescode", "omschrijving", "fabricaat", "type",
     "aantal", "AI", "AO", "DI", "DO", "UI", "SOFT",
     "voltage", "power_kw", "current_a", "va",
-    "bus_protocol", "bus_naam", "derden_flag", "locatie", "opmerking", "source_ref",
+    "bus_protocol", "bus_naam", "derden_flag", "locatie", "regelkast_spec", "opmerking", "source_ref",
 ]
 
 
@@ -34,6 +34,7 @@ class NormRow:
     bus_naam: str = ""         # chain id, e.g. "Modbus1"
     derden_flag: bool = False
     locatie: str = ""      # cabling-to location, e.g. "op dak", "in TR" (Layer B / human input)
+    regelkast_spec: str = ""  # panel-side spec column (Coneco 'Regelkast (h x b x d)'): 'Voeding pomp 230V max 1kW', 'Hulprelais 24V/230VAC', ...
     opmerking: str = ""
     source_ref: str = ""       # file/page/row for audit trace-back
 

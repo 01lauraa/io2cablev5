@@ -158,13 +158,31 @@ class Engine:
                 yield self._bus_row(cr, label)
             return
         # -- generic: feed (if 230/400V) + bus (if protocol) + signal (by type)
-        fr = self._feed_row(cr, label)
+        # A 230V smoorafsluiter takes NO separate feed: the 7G1,5 carries power and
+        # control on one cable (Tilburg manual: 7G1,5 is the only row per valve).
+        kracht_valve = "SMOORAFSLUITER" in t or "SMOORAFSLUITER_KRACHT" in t
+        fr = None if kracht_valve else self._feed_row(cr, label)
         if fr:
             yield fr
         if n.bus_protocol:
             yield self._bus_row(cr, label)
 
-        sig_priority = ["SMOORAFSLUITER", "KLEP_STURING_MELDING", "KLEP_OD", "BRANDKLEP", "MELDINGEN_GROOT",
+        # SMOORAFSLUITER cable follows voltage (house standard 'Standaarden CCA'):
+        #   r151 'Smoorklep verdamper 7g1,5' (note: smoorklep = smoorafsluiter) ->
+        #   230V / Hulprelais 24V/230VAC -> DRAK HULT 7G1,5 (Tilburg, all 10 rows)
+        #   24V / no voltage -> stuurstroom variant (Boerhaave 7X1 -- documented
+        #   deviation from the standard's generic 4x0,8, r298). Rule has known
+        #   exceptions; rows stay flagged for review.
+        if "SMOORAFSLUITER" in t:
+            # Route on the AUTHORITATIVE spec only: the voltage column and the panel
+            # column (regelkast_spec). Free-text remarks are excluded on purpose --
+            # Boerhaave carries 'Hulprelais 24V/230VAC' in a remark yet its validated
+            # manual uses the 24V stuurstroom cable (the documented exception).
+            spec = f"{n.voltage} {n.regelkast_spec}".lower()
+            if "230" in spec:
+                t = ["SMOORAFSLUITER_KRACHT" if x == "SMOORAFSLUITER" else x for x in t]
+                prim = t[0]
+        sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING", "KLEP_OD", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "REGELAFSLUITER_0_10V", "METING_ACTIEF",
                         "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
                         "MELDING"]
