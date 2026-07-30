@@ -184,11 +184,11 @@ class Engine:
                 prim = t[0]
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING", "KLEP_OD", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "REGELAFSLUITER_0_10V", "METING_ACTIEF",
-                        "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
+                        "METING_BUS", "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
                         "MELDING"]
         sig_candidates = [prim] + [x for x in t[1:]]
         def _ok(f):
-            if f.startswith("METING") and not n.AI: return False
+            if f.startswith("METING") and f != "METING_BUS" and not n.AI: return False
             if f in ("MELDING", "VRIJGAVE", "BEDRIJF_STORING") and not n.DI: return False
             if f == "STURING_0_10V" and not n.AO: return False
             return True

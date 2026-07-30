@@ -6,7 +6,9 @@ __pycache__/
 *.bak3
 out_blind/
 out_draft/
+out_test/
 out_b2ca/
 projects/*/out_test/
 ~`$*.xlsx
+io2cable\__pycache__
 "@ | Set-Content .gitignore -Encoding utf8
