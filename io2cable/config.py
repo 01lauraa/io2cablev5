@@ -29,11 +29,19 @@ class Config:
     @property
     def family(self):
         return "B2CA" if str(self.parameters.get("brandklasse", "")).upper() == "B2CA" else "CCA"
+    
+    @property
+    def brand(self):
+        return "JOBA" if str(self.parameters.get("signaalfamilie", "")).upper() == "JOBA" else "DRAK"
 
     def signal_cable(self, functietype):
         row = self.cable_by_type.get(functietype)
         if not row:
             return None
+        col = f"kabel_{self.family}_{self.brand}"
+        if col in row:
+            return row[col]
+        # fallback for legacy configs that only have kabel_B2CA_JOBA / kabel_C
         return row["kabel_B2CA_JOBA"] if self.family == "B2CA" else row["kabel_CCA_DRAK"]
 
     def feed_cable(self, klasse):

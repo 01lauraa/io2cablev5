@@ -15,25 +15,44 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill
 from .schema import NormRow, NORM_COLUMNS
 
-# Default header synonyms -> canonical field. Override per client in mappings/*.
-DEFAULT_HEADER_MAP = {
-    "omschrijving": "omschrijving", "beschrijving": "omschrijving",
-    "procescode": "procescode", "proces code": "procescode", "ref": "procescode",
-    "fabricaat": "fabricaat", "type": "type", "aantal": "aantal",
-    "analoge ingang": "AI", "analoog in": "AI", "ai": "AI",
-    "analoge uitgang": "AO", "analoog uit": "AO", "au": "AO", "ao": "AO",
-    "digitale ingang": "DI", "digitaal in": "DI", "di": "DI",
-    "digitale uitgang": "DO", "digitaal uit": "DO", "do": "DO",
-    "bedrijfmelding": "DI_bedrijf", "bedrijf": "DI_bedrijf",
-    "storingsmelding": "DI_storing", "storing": "DI_storing",
-    "statusmelding": "DI_status", "status": "DI_status",
-    "io bus-punt": "SOFT", "soft": "SOFT", "bus-punt": "SOFT",
-    "data": "bus_protocol", "busprotocol": "bus_protocol", "databus": "bus_naam",
-    "spanning": "voltage", "voeding (v)": "voltage", "v": "voltage",
-    "vermogen": "power_kw", "vermogen (kw)": "power_kw", "kw": "power_kw",
-    "stroom": "current_a", "stroom (nom)": "current_a", "a": "current_a",
-    "va": "va", "opmerking": "opmerking", "kg": "kg", "m&r": "mr_flag",
+# Client header text (lowercased, spaces ok) -> canonical NormRow field.
+# Keys are what appears in a client's functielijst; values are the internal
+# field names. Each canonical name is also accepted as a header in its own
+# right, so it does not need to be repeated as an alias below.
+_HEADER_ALIASES = {
+    "omschrijving": ["beschrijving"],
+    "procescode":   ["proces code", "ref"],
+    "fabricaat":    [],
+    "type":         [],
+    "aantal":       [],
+    "AI":           ["analoge ingang", "analoog in", "ai"],
+    "AO":           ["analoge uitgang", "analoog uit", "au", "ao"],
+    "DI":           ["digitale ingang", "digitaal in", "di"],
+    "DO":           ["digitale uitgang", "digitaal uit", "do"],
+    "DI_bedrijf":   ["bedrijfmelding", "bedrijf"],
+    "DI_storing":   ["storingsmelding", "storing"],
+    "DI_status":    ["statusmelding", "status"],
+    "SOFT":         ["io bus-punt", "soft", "bus-punt"],
+    "bus_protocol": ["data", "busprotocol"],
+    "bus_naam":     ["databus"],
+    "voltage":      ["spanning", "voeding (v)", "v"],
+    "power_kw":     ["vermogen", "vermogen (kw)", "kw"],
+    "current_a":    ["stroom", "stroom (nom)", "a"],
+    "va":           [],
+    "opmerking":    [],
+    "kg":           [],  #unused 
+    "mr_flag":      ["m&r"],
 }
+
+DEFAULT_HEADER_MAP = {}
+for _field, _aliases in _HEADER_ALIASES.items():
+    DEFAULT_HEADER_MAP[_field.lower()] = _field
+    for _alias in _aliases:
+        DEFAULT_HEADER_MAP[_alias] = _field
+
+_PARSE_ONLY = {"DI_bedrijf", "DI_storing", "DI_status", "mr_flag", "kg"}
+_unknown = set(DEFAULT_HEADER_MAP.values()) - set(NORM_COLUMNS) - _PARSE_ONLY
+assert not _unknown, f"header map targets unknown schema fields: {sorted(_unknown)}"
 
 DERDEN_PAT = re.compile(
     r"derden|derde|vanuit hvk|vanuit e-verdeler|uit e-installatie|vanuit bmc", re.I)
