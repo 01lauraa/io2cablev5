@@ -4,7 +4,7 @@ from typing import Optional
 
 NORM_COLUMNS = [
     "rk", "group", "procescode", "omschrijving", "fabricaat", "type",
-    "aantal", "AI", "AO", "DI", "DO", "UI", "SOFT",
+    "aantal", "AI", "AO", "DI", "DO", "SOFT",
     "voltage", "power_kw", "current_a", "va",
     "bus_protocol", "bus_naam", "derden_flag", "locatie", "regelkast_spec", "opmerking", "source_ref",
 ]
@@ -24,7 +24,6 @@ class NormRow:
     AO: int = 0
     DI: int = 0
     DO: int = 0
-    UI: int = 0
     SOFT: int = 0
     voltage: str = ""          # "230", "400", "24V DC", ...
     power_kw: Optional[float] = None

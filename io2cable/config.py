@@ -20,7 +20,7 @@ def _rows(ws):
 class Config:
     parameters: dict = field(default_factory=dict)
     synonyms: list = field(default_factory=list)      # (pattern, functietype, prio)
-    cable_by_type: dict = field(default_factory=dict) # functietype -> {CCA, B2CA}
+    cable_by_type: dict = field(default_factory=dict) # functietype -> (4 cable columns)
     feeds: dict = field(default_factory=dict)         # klasse -> row
     bus: dict = field(default_factory=dict)           # bustype -> row
     texts: dict = field(default_factory=dict)
@@ -29,7 +29,7 @@ class Config:
     @property
     def family(self):
         return "B2CA" if str(self.parameters.get("brandklasse", "")).upper() == "B2CA" else "CCA"
-    
+
     @property
     def brand(self):
         return "JOBA" if str(self.parameters.get("signaalfamilie", "")).upper() == "JOBA" else "DRAK"

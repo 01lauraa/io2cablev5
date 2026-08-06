@@ -19,43 +19,35 @@ BLUE = Font(bold=True, italic=True, color="1F4E78", name="Arial", size=10)
 def write_cable_list(result, cfg, path, rk_naam):
     wb = Workbook()
     ws = wb.active
-    ws.title = rk_naam
-    ws.append(["nr", "onderdeel", "ws", "proces code", "kabel soort en doorsnede", "bekabeling naar"])
+    ws.append(["nr", "onderdeel", "ws", "proces code", "kabel soort en doorsnede"])
     for c in ws[1]:
         c.font = Font(bold=True, color="FFFFFF", name="Arial", size=10)
         c.fill = PatternFill("solid", start_color="1F4E78")
-
     ws.append([])
     ws.append(["", cfg.texts["VOEDINGEN"]]); ws.cell(ws.max_row, 2).font = BLUE
     for i, r in enumerate(result["voedingen"], 1):
-        ws.append([i, r.onderdeel, r.ws, r.procescode, r.kabel, r.bekabeling_naar])
+        ws.append([i, r.onderdeel, r.ws, r.procescode, r.kabel])
     ws.append([])
     ws.append(["", cfg.texts["TOT_DERDEN"], result["tot_derden"]])
     ws.append(["", cfg.texts["TOT_WS"], result["tot_ws"]])
     for rr in (ws.max_row - 1, ws.max_row):
         ws.cell(rr, 2).font = BOLD
         ws.cell(rr, 3).font = Font(bold=True, color="0000FF", name="Arial", size=10)
-
-    nr, last_sec = 0, None
+    ws.append([])
+    nr = 0
     for r in result["devices"]:
-        if r.section != last_sec:
-            ws.append([])
-            ws.append(["", r.section]); ws.cell(ws.max_row, 2).font = BLUE
-            last_sec = r.section
         nr += 1
         flag = " [?]" if r.flags else ""
-        ws.append([nr, r.onderdeel + flag, r.ws, r.procescode, r.kabel, r.bekabeling_naar])
-
+        ws.append([nr, r.onderdeel + flag, r.ws, r.procescode, r.kabel])
     ws.append([])
     ws.append(["", cfg.texts["ONDERSTATION"]]); ws.cell(ws.max_row, 2).font = BLUE
     for r in result["onderstation"]:
         nr += 1
-        ws.append([nr, r.onderdeel, r.ws, r.procescode, r.kabel, r.bekabeling_naar])
-
-    for col, w in zip("ABCDEF", (5, 46, 5, 12, 58, 20)):
+        ws.append([nr, r.onderdeel, r.ws, r.procescode, r.kabel])
+    for col, w in zip("ABCDE", (5, 46, 5, 12, 58)):
         ws.column_dimensions[col].width = w
     ws.freeze_panes = "A2"
-    wb.save(path)
+    wb.save(path) 
 
 
 def main(argv=None):

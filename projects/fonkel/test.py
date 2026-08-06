@@ -50,19 +50,6 @@ def has(needle, n=None):
 
 checks = []
 
-# --- section structure: the location-banner rule ---------------------------
-expect_sections = ['Voedingen', 'Warmtepomp', 'Buffervat GKW', 'Buffervat CV', 'Korex',
-                   'Transport GKW', 'Transport CV', 'Deelstroomfilter',
-                   'Elektrische ketel CV-MT', 'Onderstation algemeen']
-ok = sections == expect_sections
-print(("PASS" if ok else "FAIL"), "sections match the manual exactly")
-if not ok:
-    print("        got:", sections)
-checks.append(ok)
-
-# location banners resolved into the bekabeling-naar column
-checks.append(has("Buiten TR", 3))          # LT-CV buffer temps
-checks.append(has("op dak", 3))             # WP bus + meldingen
 
 # --- Voedingen + totals ----------------------------------------------------
 checks.append(has("Kabel levering derde totaan RK, aansluiten kastzijde Erco", 2))  # RK + brandmelding
@@ -78,7 +65,6 @@ checks.append(has("DRAK HULT B2CA 4G2,5 MT", 4))          # 400V transport pumps
 checks.append(has("DRAK HULT B2CA 3G2,5 MT", 5))          # 230V circ/deelstroom/korex
 checks.append(has("Via aansluitsnoer van 2 meter op meter", 4))
 checks.append(has("BMS Cable 2x2x24AWG - R1319 - B2ca s1,d0,a1 Violet HA500", 11))
-checks.append(has("doorlussen", 9))          # 11 bus cables, 2 chain heads
 
 # --- device-level rules ----------------------------------------------------
 checks.append(has("Elektrische ketel vrijgave/storing"))

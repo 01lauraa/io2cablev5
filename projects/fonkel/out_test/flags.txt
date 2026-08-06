@@ -1,8 +1,0 @@
-Confirm third-party (derden) scope: 'Warmtepompcentrale (hoofdvoeding + condensor)' (475A voeding vanuit HVK zie specs Servex)
-WP hybrid: bus + hardwired meldingen — confirm the data-vs-hardwired choice
-Confirm third-party (derden) scope: 'Warmtepompcentrale (secundaire voeding + verdamper)' (10A voeding vanuit HVK)
-Tracing scope: precedent = Erco feeds from the RK; the input remark may differ
-n.t.b. item: 'kWh-meter wwarmtepompcentrale' — omitted until scope is known
-OMITTED (n.t.b.): kWh-meter wwarmtepompcentrale (IO:r4)
-Confirm third-party (derden) scope: 'Regelkast' ()
-Confirm third-party (derden) scope: 'Elektrische ketel CV-MT' (400V voeding vanuit E-verdeler)

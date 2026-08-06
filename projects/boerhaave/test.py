@@ -42,7 +42,6 @@ checks = [
     has("JOBA STUURSTR HHJZ 3X1 MT", 3),          # energiemeter voeding per WP
     has("DRAK SIGK CCA 1X2X0,8 2501 MT", 7),      # buffer temps
     has("DRAK HULT CCA 5G2,5 MT", 3),             # tracing per WP
-    has("voeding doorlussen", 3),                 # tracing bekabeling-naar
     # bus: 3 WP + 3 energiemeter + 3 E-verdeler = 9 (manual: 8; WP1 deviation documented)
     has("BMS Cable 2x2x24AWG - R1319 - B2ca s1,d0,a1 Violet HA500", 9),
     # E-verdeler meters land in Onderstation algemeen; NO brandmelding (param nee)

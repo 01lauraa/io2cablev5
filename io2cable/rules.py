@@ -101,6 +101,13 @@ class Engine:
         if has("NTB"):
             self.flags.append(f"OMITTED (n.t.b.): {label} ({n.source_ref})")
             return
+        if has("PANEL_INTERN"):
+            # Panel-internal meldingen (reset button, installation automats,
+            # netwachter): the signal never leaves the cabinet, so no field
+            # cable. Evidence: 2195-06 (RS-01, IA-01, NW-01) and 7267
+            # (Resetknop, Automaat 230V/24V) -- neither manual lists a cable.
+            self.flags.append(f"PANEL-INTERNAL (no field cable): {label} ({n.source_ref})")
+            return
         if has("REGELKAST"):
             cab, _, _ = self.cfg.feed_cable("DERDEN_RK")
             yield CableRow("Voedingen", "Regelkast", "", "", cab, "", source_ref=n.source_ref)
@@ -184,7 +191,7 @@ class Engine:
                 prim = t[0]
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING", "KLEP_OD", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "REGELAFSLUITER_0_10V", "METING_ACTIEF",
-                        "METING_BUS", "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
+                        "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
                         "MELDING"]
         sig_candidates = [prim] + [x for x in t[1:]]
         def _ok(f):

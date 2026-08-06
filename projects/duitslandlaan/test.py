@@ -46,7 +46,6 @@ checks = [
     has("DRAK HULT B2CA 3G2,5 MT", 6),          # tracing + korex + 2 partial-flow + 2 circ
     has("BMS Cable 2x2x24AWG - R1319 - B2ca s1,d0,a1 Violet HA500", 12),  # WP + 2 EM + korex + 8 pumps (kWh meter omitted)
     has("Via aansluitsnoer van 2 meter op meter", 4),
-    has("doorlussen", 10),
     # structure
     has("Elektrische ketel vrijgave/storing"),
     has("Elektrische ketel sturing"),

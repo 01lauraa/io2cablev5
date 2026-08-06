@@ -20,7 +20,7 @@ from .schema import NormRow, NORM_COLUMNS
 # field names. Each canonical name is also accepted as a header in its own
 # right, so it does not need to be repeated as an alias below.
 _HEADER_ALIASES = {
-    "omschrijving": ["beschrijving"],
+    "omschrijving": ["beschrijving", "onderdeel"],
     "procescode":   ["proces code", "ref"],
     "fabricaat":    [],
     "type":         [],
@@ -33,14 +33,13 @@ _HEADER_ALIASES = {
     "DI_storing":   ["storingsmelding", "storing"],
     "DI_status":    ["statusmelding", "status"],
     "SOFT":         ["io bus-punt", "soft", "bus-punt"],
-    "bus_protocol": ["data", "busprotocol"],
-    "bus_naam":     ["databus"],
+    "bus_protocol": ["data", "busprotocol", "protocol"],
+    "bus_naam":     ["databus", "poort"],
     "voltage":      ["spanning", "voeding (v)", "v"],
     "power_kw":     ["vermogen", "vermogen (kw)", "kw"],
     "current_a":    ["stroom", "stroom (nom)", "a"],
     "va":           [],
-    "opmerking":    [],
-    "kg":           [],  #unused 
+    "opmerking":    ["specificatie"],
     "mr_flag":      ["m&r"],
 }
 
@@ -50,7 +49,7 @@ for _field, _aliases in _HEADER_ALIASES.items():
     for _alias in _aliases:
         DEFAULT_HEADER_MAP[_alias] = _field
 
-_PARSE_ONLY = {"DI_bedrijf", "DI_storing", "DI_status", "mr_flag", "kg"}
+_PARSE_ONLY = {"DI_bedrijf", "DI_storing", "DI_status", "mr_flag"}
 _unknown = set(DEFAULT_HEADER_MAP.values()) - set(NORM_COLUMNS) - _PARSE_ONLY
 assert not _unknown, f"header map targets unknown schema fields: {sorted(_unknown)}"
 
@@ -83,6 +82,16 @@ def _num(v):
 def _is_err(v):
     return isinstance(v, str) and v.strip().startswith("#")
 
+_PROTOCOL_WORDS = ("modbus", "bacnet", "m-bus", "mbus", "knx", "lon", "profibus")
+
+
+def _header_protocol(text):
+    """Some layouts name the bus protocol in the COLUMN HEADER and put point
+    counts in the cells -- e.g. a column headed 'modbus RTU' whose cells hold
+    100, 10. Returns the header text when it names a protocol, else None.
+    Evidence: project 7267 (Apparatuurlijst), 3 BMS cables lost without this."""
+    s = str(text or "").strip()
+    return s if any(w in s.lower() for w in _PROTOCOL_WORDS) else None
 
 def _parse_electrical_spec(text):
     """Extract (voltage, current_a, power_kw) from free-text electrical specs, e.g.
@@ -135,11 +144,13 @@ def parse_excel(path, rk="RK?", header_map=None, sheet=None, mr_only=True):
     hdr_i = max(range(min(len(grid), 30)), key=lambda i: score(grid[i]))
     if score(grid[hdr_i]) < 3:
         raise ValueError(f"No recognizable header row in {path}; supply a header_map.")
-    cols = {}
+    cols, proto_cols = {}, {}
     for j, c in enumerate(grid[hdr_i]):
         key = str(c).strip().lower() if c else ""
         if key in hmap:
             cols.setdefault(hmap[key], j)
+        elif _header_protocol(c):
+            proto_cols[j] = _header_protocol(c)
 
     rows, group = [], ""
     for i, r in enumerate(grid[hdr_i + 1:], start=hdr_i + 2):
@@ -163,7 +174,7 @@ def parse_excel(path, rk="RK?", header_map=None, sheet=None, mr_only=True):
         else:
             # layout without M&R column (e.g. Coneco): a row with no quantity and
             # no I/O and no bus is a group header
-            if not get("aantal") and not get("procescode") and not get("bus_protocol")                and not any(_num(get(f)) for f in ("AI", "AO", "DI", "DO", "SOFT")):
+            if not get("aantal") and not get("procescode") and not get("bus_protocol") and not any(_num(get(f)) for f in ("AI", "AO", "DI", "DO", "SOFT")):
                 group = desc
                 continue
         bad = [f for f in ("AI", "AO", "DI", "DO", "SOFT") if _is_err(get(f))]
@@ -183,6 +194,13 @@ def parse_excel(path, rk="RK?", header_map=None, sheet=None, mr_only=True):
             source_ref=f"{path}:{ws.title}:r{i}",
         )
         row.regelkast_spec = str(get("regelkast_spec") or "").strip()
+        if not row.bus_protocol and proto_cols:
+            # Protocol named in the column header (see _header_protocol): a
+            # non-empty cell in that column means the device is on that bus.
+            for _j, _proto in proto_cols.items():
+                if _j < len(r) and _num(r[_j]):
+                    row.bus_protocol = _proto
+                    break
         if not row.voltage and not row.power_kw and not row.current_a:
             # Layouts with no dedicated U/I/P columns (Append1) embed the electrical
             # spec as free text in Opmerking: '230vac/6A', '400V/10A/4kW',
