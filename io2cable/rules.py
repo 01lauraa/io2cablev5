@@ -200,7 +200,8 @@ class Engine:
         # is one project's evidence and is an open ASK.
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING",
                         "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDKLEP", "MELDINGEN_GROOT",
-                        "EC_VENTILATOR", "REGELAFSLUITER_0_10V", "METING_ACTIEF",
+                        "EC_VENTILATOR", "POMP_3_SIGNALEN", "POMP_2_SIGNALEN",
+                        "REGELAFSLUITER_0_10V", "METING_ACTIEF",
                         "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
                         "MELDING"]
         sig_candidates = [prim] + [x for x in t[1:]]

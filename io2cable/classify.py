@@ -28,6 +28,20 @@ def classify_row(norm, cfg):
     if len(hits) > 1 and (hits[0] == "DERDEN" or (hits[0] == "REGELKAST" and "regelkast" not in norm.omschrijving.lower())):
         hits.append(hits.pop(0))
 
+    # A pump's signal cable follows the NUMBER of signals on the row, not the
+    # pump type (Rick 2026-08-18, confirmed against the CCA dictionary and the
+    # 7222 manual): 2 signals (vrijgave/storing) -> 1x4x0,8; 3 signals
+    # (vrijgave/storing/sturing) -> 3x2x0,8.  Counted from the I/O columns so
+    # it does not depend on how the description is worded.
+    # NB pump-specific: the dictionary gives a 3-signal KETEL 1x4x0,8 and a
+    # 2-signal VENTILATOR 2x2x0,8, so this must NOT be generalised.
+    if "POMP" in hits:
+        _n_sig = sum(1 for _v in (norm.DI, norm.DO, norm.AO) if _v)
+        if _n_sig >= 3:
+            hits.insert(0, "POMP_3_SIGNALEN")
+        elif _n_sig == 2:
+            hits.insert(0, "POMP_2_SIGNALEN")
+
     # I/O-signature fallbacks when the dictionary is silent
     if not hits:
         if norm.bus_protocol:

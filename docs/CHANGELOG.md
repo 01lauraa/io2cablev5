@@ -7,6 +7,135 @@ Format: `[BUCKET] change — evidence (project / row)`
 
 ---
 
+## v5 — 7222 (nieuwe regelkast, technische ruimte 4e verdieping), B2CA/DRAK, 5 panels
+First project on the **B2CA/DRAK** family combination and on the client8 layout.
+Manual: 793 wires over five panels (RK1 349, RK02 166, RK03 155, RK04 55,
+RK05 55) plus a Naregelingen sheet, 6-2-2026, Rick van Deurzen.
+
+Blind 22.6% → **33.4% exact / 45.4% on conductor specs**. Four fixes merged;
+merge gate 3/3 green. The dominant remaining error is one config cell.
+
+Full detail in `OPEN_QUESTIONS.md` Section 0d.
+
+### PARAM — `signaalfamilie` inherited again (4th occurrence)
+Run made with `signaalfamilie = JOBA`; this client is **DRAK**. Emitted
+`JOBA ST.STR B2CA HCHOZ 2X1 MT` ×361 against a manual count of 35, and zero of
+the manual's three commonest cables. The same run scored 77.3% when cables were
+collapsed into function buckets — the classifier was working and the parameter
+hid it. *(7222 / whole list)*
+
+**Fourth run lost to `0_Parameters`.** The parameter echo on the summary line is
+still the highest value-per-line change outstanding; add a staleness warning
+when `brandklasse`/`signaalfamilie` are unchanged from the previous run.
+
+### BUG — `classify_row` was blind to `procescode`
+The client8 layout puts the device name in the tag column and a part number in
+`Omschrijving` (`Dakafvoerkap (droog)` / `Servomotor Open/Dicht`;
+`Buitenluchtklep` / `GCA126.1E Damper actuator`). The match text was
+`omschrijving + type + opmerking`, so the identifying word was invisible.
+Added `norm.procescode`. *(7222 / r144-145 + Buitenluchtklep rows)*
+
+Verified with the new `classify_diff.py`: three locked projects NO CHANGE, 7222
+28 rows changed, **all `None → type`** — nothing already classified was
+reclassified. 11 spec matches.
+
+### BUG — `DO` was invisible to the whole signal path
+`classify.py`'s I/O fallback went `AI → DI → AO`; `_ok()` in `rules.py` gated on
+`AI`/`DI`/`AO`. A device whose only signal is a digital **output** selected no
+type and no cable. Added a `DO` branch → new `KLEP_OD_ZONDER_TERUGMELDING`
+(`4x0,8`). `KLEP_OD` could not be reused — it is the with-feedback variant
+(`8X0,8`, "open/close + feedback(s)"). *(7222 / r144-145 Dakafvoerkap,
+`Voeding=230`, `Digital uit=1`; manual 139-142 = feed + `GY 4X0,8`)*
+
+Recorded because it cost three runs: widening `_ok()` to accept `DO` for
+`MELDING`/`VRIJGAVE`/`BEDRIJF_STORING` made every DO-only row select
+`BEDRIJF_STORING` (`6X0,8`) and masked the new type. Reverted.
+
+### CONFIG — `servomotor` synonym removed
+It names the **actuator**, never the device, and collided in three directions:
+2195-06's `Brandklepservomotor levring derden` (ties with `brandklep` at prio
+70, wins on length — 13 rows on an unfixtured project), 7222's 14
+`ChangeOver6 Servomotor … temperatuur sensoren` (beat `temperatuur` at 65), and
+7268's 6 Energy Valve accessories.
+
+**New general rule:** component and attribute nouns (`servomotor`,
+`hulpschakelaar`, `aansluitset`, `base`, `module`) must not become device
+classes. Same failure as the v3 `DERDEN` primary-hijack, from a different
+direction. *(7222, 2195-06, 7268)*
+
+### CONFIG + BUG — pump signal rule
+`POMP` classified correctly but was **inert** — absent from `sig_priority`, so
+it could never select a signal cable. 7222 emitted `GY 2X0,8` on 40 pump rows;
+2195-06 emitted nothing on five.
+
+**Rick 2026-08-18:** the cable follows the **signal count**, not the pump type —
+2 signals → `1x4x0,8`, 3 signals → `3x2x0,8`. Confirmed by the reissued CCA
+dictionary (nine two-signal pump rows) and 7222's manual (`Circulatiepomp
+vrijgave/storing` → `1X4X0,8` ×8; `Transportpomp vrijgave/storing/sturing` →
+`3X2X0,8` ×32). Encoded as `POMP_2_SIGNALEN` / `POMP_3_SIGNALEN`, counted from
+the I/O columns. **Pump-specific — do not generalise:** the same dictionary
+gives a three-signal ketel `1x4x0,8` and a two-signal ventilator `2x2x0,8`.
+19 wires. *(7222 / pump rows)*
+
+### CONFIG — reissued CCA dictionary (Rick, 2026-08-18)
+Every `1,5` cross-section → `2,5` (19 device types); 27 signal rows
+`2x2x0,8 → 1x4x0,8`. Applied to `2_Kabelkeuze` rows 20, 22 and 45 (12 cells).
+`3_Voedingen` needed no change — already at `2,5`.
+
+**Closes Conflict A** (transportpomp `4g1,5` vs the validated projects' `4g2,5`
+— the standard was stale, the projects were right), **Conflict E** (warmtewiel)
+and **Conflict H** (tracing, at `5G2,5`).
+
+`SMOORAFSLUITER` deliberately left at `7G1,5`: that value comes from Tilburg's
+validated manual, not the standard. ASK.
+
+### CONFIG — `header_map_client8.xlsx`
+17 columns, five rows beyond the defaults. Note `Digital uit` — a **typo in the
+client sheet** (missing the second `a`); without the map row, DO reads 0
+sheet-wide with no flag.
+
+### DATA — fourth silent-drop mechanism
+The raw input has 26 columns in three repeating blocks; `cols.setdefault` keeps
+only the first occurrence of each field and discards the rest with no flag.
+Merged in Excel to get the run through, which breaks the blind-run contract.
+Proper fix: collect every column index per field in `ingest`. *(7222 / raw
+input)*
+
+### NOT FIXED — the largest item
+`kabel_B2CA_DRAK` `METING_PASSIEF` holds `DRAK SIGK B2CA 1X2X0,8 2501 MT`; the
+manual uses `DRAK SIGK 1X4X0,8 B2CA HA500` on 220 rows. Right rows, wrong
+string — **~190 wires from one cell**, more than everything merged here
+combined. Blocked on an ASK: the reissued dictionary moved drukopnemers to
+`1x4x0,8` but left field temperature sensors at `1x2x0,8`.
+
+### ASK
+Field sensor cable (~190 wires) · `Levering CWD/W` scope (~83) · open/dicht core
+count (58 rows) · `SMOORAFSLUITER` `7g1,5` vs `7g2,5` · `3_Voedingen` `TRACING`
+B2CA cell · `Leeswaarde`/`Verzendwaarde` · six `Detector` rows.
+See `OPEN_QUESTIONS.md` Section 11, items 17-26.
+
+### Tooling
+`classify_diff.py` (required before any synonym or match-text change) and
+`probe4.py` (verifies a classify edit reached the running code).
+
+### NOT LOCKED
+No fixture — the largest fix is untouched pending the sensor ASK.
+
+**Process note.** Two `classify.py` edits sat unsaved for hours while three runs
+were scored against code that did not contain them: VS Code's dirty-write guard
+makes autosave a silent no-op once the on-disk mtime diverges. Verify with
+`probe4.py` or `git status` before scoring. Prefer scripted patches.
+
+---
+
+## Sessions not recorded here
+2195-06 (2026-07-30), 1363 (2026-07-31) and 7267 (2026-08-01) shipped code and
+config changes that were logged in `OPEN_QUESTIONS.md` Sections 0, 0b and 0c
+rather than here. The v-numbering therefore jumps from v4 to v5 across three
+working sessions. Scores for all projects are in `OPEN_QUESTIONS.md` Section 12.
+
+---
+
 ## v4 — Fonkel Breda (PR 20267276-2600214), B2CA Kuijpers
 Blind score ~89% (54/61). All misses structural; **zero cable-knowledge errors**.
 Three BUGs fixed; two structural items remain batched.
@@ -193,11 +322,14 @@ structure, known ambiguities. Never blind-validated.
 
 ## Open items (not encoded — need answers)
 
+**The live list is `OPEN_QUESTIONS.md` Section 11** — 26 items, ordered by wires.
+The table below is the original v1-v4 set, kept for provenance.
+
 | # | Item | Seen in | Status |
 |---|---|---|---|
-| 1 | `Totaal ws` = 0 while ws column is populated | Duitslandlaan (10), Fonkel (8) | **ASK Rick.** Twice is a pattern, but it's unexplained — encoding it would be inventing a rule from an artifact. |
-| 2 | Group naming: input groups are authoritative (Boerhaave) vs wrong (Fonkel) | Boerhaave, Fonkel | **Batched.** Needs a second signal before designing. |
-| 3 | Sub-panels without an RK code (Fonkel "Tracing" page) | Fonkel | **Batched** with #2 — both are "how does a list split". |
-| 4 | WP-internal water temps: bus-coupled WP's own in/out temps get no cable | Boerhaave | Candidate `NIET_BEKABELEN` type. One observation. |
-| 5 | `Buiten TR` as a third location value | Fonkel | Needs a rule or a review field. |
-| 6 | Whether client-specified WSK columns should override the engine | klemmenlijst layout | Ask before wiring. |
+| 1 | `Totaal ws` = 0 while ws column is populated | Duitslandlaan (10), Fonkel (8), 7268, 2195-06, 1363 | **ASK Rick.** Five projects. Cosmetic — ws does not affect the wire list. |
+| 2 | Group naming: input groups authoritative (Boerhaave) vs wrong (Fonkel) | Boerhaave, Fonkel | **RESOLVED v4** — `6_Locatiekoppen`. |
+| 3 | Sub-panels without an RK code (Fonkel "Tracing" page) | Fonkel, 2195-06 | **Batched.** See OQ Q12. |
+| 4 | WP-internal water temps get no cable | Boerhaave | Candidate `NIET_BEKABELEN`. One observation. |
+| 5 | `Buiten TR` as a third location value | Fonkel | **RESOLVED v4** — `6_Locatiekoppen`. |
+| 6 | Whether client-specified WSK columns override the engine | klemmenlijst layout | Ask before wiring. |

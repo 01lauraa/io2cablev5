@@ -5,8 +5,9 @@ records the pattern, the proposed encoding, and what would need to happen before
 adding it to `kabelconfig.xlsx`. Per the validation protocol: never encode a rule
 from a single observation.
 
-**Last updated:** 2026-07-30, after validating project 2195-06 (Priva layout,
-B2CA, RK1).
+**Last updated:** 2026-08-18, after validating project 7222 (client8 layout,
+B2CA/DRAK, 5 panels, 793 wires) and a reissued CCA dictionary from Rick.
+See Section 0d.
 
 ---
 
@@ -23,6 +24,30 @@ Two code changes shipped, merge gate 3/3 green throughout:
 
 No previously-open question was closed. Four were strengthened (Q1, Rule 1,
 Conflict C, Q3) and are marked below. Six new entries added (Sections 6 and 7).
+
+---
+
+## Section 0b — What changed on 2026-07-31 (project 1363 + Rick's answers)
+
+**Project 1363** (Kuijpers `I-GA-78-FL--1RK00.xls`, three sheets merged:
+`061 TG XL`, `RK 861`, `RK Algemeen`). Manual is **four panels** — RK-ALGMN
+(108 rows), RK161 (13), RK861 (22), NEXT (17) — **160 wires total**.
+
+| Run | Score |
+|---|---|
+| `brandklasse=CCA` (inherited from 2195-06, wrong) | 21/160 = 13% |
+| `brandklasse=B2CA` | **72/160 = 45%** |
+
+**Best blind first-pass score on any project to date.** No code changes; the
+51-wire gain was one parameter. Exact matches: `JOBA ST.STR B2CA HCHJZ 5X1 MT`
+20/20, `Via aansluitsnoer van 2 meter op meter` 6/6,
+`JOBA ST.STR B2CA HCHOZ 2X1 MT` 34/47, BMS Cable 9/12.
+
+**No new code changes shipped.** The four remaining blocks (below) are all
+questions, not bugs.
+
+**Rick answered three dictionary questions** — see Section 9. One is
+actionable, two need follow-up before encoding.
 
 ---
 
@@ -70,7 +95,7 @@ unambiguous convention throughout.
 
 Same device class, same marker family, same outcome, two independent projects
 and two different estimators.
----> cable should be 4 x 0.8
+
 **Proposed:** `brandklepservomotor` + derden marker → emit the normal
 `BRANDKLEP` signal cable, do not suppress. Effectively a no-op against current
 behaviour (the pipeline already emits), but it would let the rows stop
@@ -86,20 +111,66 @@ several different outcomes, and the ambiguity exists *within* a single project
 (ZRD has three of four outcomes across three rows). 2195-06 is internally
 consistent, which is encouraging but does not resolve ZRD or Boerhaave.
 
-## What still looks safe (name-based, unchanged)
+## The name-based synonym list — **PARTLY FALSIFIED 2026-07-31**
 
-The **name-based synonyms** are unambiguous across the projects that contain
-them: `kWh-meter`, `roldeur`, `vluchtdeur`, `overspanningsbeveiliging`,
-`dali verlichting`, `terreinverlichting`, `veegpuls verlichting`,
-`schemerschakelaar`, `buitenverlichting`, `gevelverlichting`,
-`knx verlichting`, `miva`, `liftinstallatie`, `lift storing`, `wcd vrijgave`,
-`inbraakcentrale`, `verkeerslicht`.
+Previously recorded as "unambiguous across the projects that contain them" and
+safe to encode as derden terminations:
+
+`kWh-meter` · `roldeur` · `vluchtdeur` · `overspanningsbeveiliging` ·
+`dali verlichting` · `terreinverlichting` · `veegpuls verlichting` ·
+`schemerschakelaar` · `buitenverlichting` · `gevelverlichting` ·
+`knx verlichting` · `miva` · `liftinstallatie` · `lift storing` ·
+`wcd vrijgave` · `inbraakcentrale` · `verkeerslicht`
 
 Cable: `Kabel levering derde totaan RK, aansluiten kastzijde Erco`.
 
-Impact if encoded: ~15 rows in 7268, ~20 in ZRD. Boerhaave stays green — none
-of these names appear in it. **Note:** none appear in 2195-06 either, so that
-project neither confirms nor contradicts this list.
+### `overspanningsbeveiliging` is DISPROVEN — remove it
+
+An earlier revision of this file claimed none of these names appear in
+2195-06. **That was wrong.** 2195-06 gives the same device name three
+different outcomes:
+
+| Row | Manual outcome |
+|---|---|
+| `OSB-02 Overspanningsbeveiliging verdeelkast` | `DRAKSIG KAB B2CA GY 1X2X0.8 MT` — a **real Erco signal cable** |
+| `OSB-01 Overspanningsbeveiliging regelkast` | **no cable at all** — panel-internal, see Q10 |
+| 7268 / ZRD | derden termination |
+
+Encoding `overspanningsbeveiliging -> derden` would produce two wrong rows on
+2195-06 and mask the panel-internal finding. **This is the marker-based Rule 1
+failure reappearing in the name-based version:** same string, different
+outcomes, no discriminator in the data except `regelkast` vs `verdeelkast`.
+
+### The remaining sixteen names are UNVERIFIED, not safe
+
+The list was compiled from 7268 and ZRD, before 2195-06 and 1363 existed, and
+was never re-checked against them. Since one of seventeen entries turned out to
+be wrong the first time a third project was consulted, the rest are
+**one-context observations** until the same check is run.
+
+**Required before encoding** — grep every manual and normalized.csv for each
+name, and drop any that appears with a different outcome anywhere:
+
+```powershell
+python -c "
+import pandas as pd,glob
+names=['kwh-meter','kwh meter','roldeur','vluchtdeur','dali','terreinverlichting','veegpuls','schemerschakelaar','buitenverlichting','gevelverlichting','knx','miva','liftinstallatie','lift storing','wcd vrijgave','inbraakcentrale','verkeerslicht']
+for f in glob.glob(r'projects\*\normalized.csv'):
+    d=pd.read_csv(f,dtype=str).fillna('')
+    blob=d.astype(str).agg(' '.join,axis=1).str.lower()
+    for nm in names:
+        hit=blob.str.contains(nm,regex=False)
+        if hit.any(): print(f,'|',nm,'|',hit.sum(),'rows')
+"
+```
+
+### The impact estimate is stale
+
+"7268 ~37% -> ~50%, ZRD ~17% -> ~35%" predates the transportpomp feed fix
+(7268 is now 48%) and was never re-measured. Neither 1363 nor 2195-06 contains
+any of these names apart from the disproven one, so this work improves neither
+current project. **Low priority** relative to the mechanism-level bugs in
+Section 6.
 
 ## Questions for Rick (unchanged, plus one)
 
@@ -115,29 +186,46 @@ project neither confirms nor contradicts this list.
 
 ---
 
-### Rule 2 — Energy Valve → RAK SIGN KAB 4x0,8
-**Status:** one observation. Do not encode yet. *(unchanged)*
-**Evidence:** project 7268, 8 rows.
+### Rule 2 — Energy Valve → 4x0,8 + Modbus — **CONFIRMED BY RICK 2026-07-31**
+**Status:** cable value confirmed by Rick; still blocked on two details.
+**Evidence:** 7268 (8 rows) + Rick's confirmation, see R1 in Section 9.
 
-**Proposed cable.** `RAK SIGN KAB CCA 4X0,8 HA500`.
+**Cable.** `4x0,8` — CCA form `RAK SIGN KAB CCA 4X0,8 HA500` — **plus a Modbus
+koppeling.** The Modbus half is new information from Rick and was not part of
+the original rule.
 
-**Confirmation needed.** B2CA equivalent unknown; whether `voeding` is always
-this control cable.
+**Still blocked on:**
+1. **B2CA equivalent** — no validated project supplies it.
+2. **Which Modbus cable** — the standard BMS Cable, or the `CS34ZB` variant
+   from Rule 3? This also bears on whether Rule 3's trigger can ship.
 
-**NEW note:** see Section 6 Q10 — 2195-06 shows `RAK SIGN KAB` may actually be
-`DRAKSIG KAB`. If that spelling is wrong in the config it affects this rule too.
+**Spelling caveat:** 2195-06 writes `DRAKSIG KAB` where the config writes
+`RAK SIGN KAB` — possibly a dropped `D`. If the config spelling is wrong, this
+rule's CCA value inherits the error. See Section 11 item 11.
 
 ---
 
-### Rule 3 — BACnet Delta Controls → UTP CAT6 CS34ZB HA305
-**Status:** one observation. Do not encode yet. *(unchanged)*
-**Evidence:** project 7268, 5 rows plus Naregelingen row.
+### Rule 3 — BACnet / RK-onderling → UTP CAT6 **CS34ZB** — **SECOND OBSERVATION 2026-07-31**
+**Status:** two observations for the cable string; the *trigger* is still one.
+**Evidence:**
+- 7268: 5 BACnet Delta Controls rows + Naregelingen `Communicatie Delta Controls`
+- **1363 `NEXT` panel: 16 x `COMM U/UTP CAT6 CS34ZB HA305`** for
+  `Datacommunicatiekabel regelkast RK<nnn>`
 
-**Proposed cable.** `COMM U/UTP CAT6 CS34ZB HA305` (note `CS34ZB`, not
-`CS34ZC`).
+**Cable.** `COMM U/UTP CAT6 CS34ZB HA305` — note `CS34ZB`, not `CS34ZC`.
 
-**Alternative** — register in `4_Bus` so the existing chain logic
-(`doorlussen`) fires automatically.
+**This upgrades the CS34ZB/CS34ZC hygiene item** (Section 5) from "consolidate
+if identical" to a probable config error: two independent projects, two
+different contexts (field BACnet chain, RK-onderling communicatie), same
+string — while the config's `COMM_RK_ONDERLING` says `CS34ZC` and is
+contradicted by 1363's manual on 16 rows.
+
+**Ask Rick to confirm before changing `COMM_RK_ONDERLING`.** The two projects
+agree with each other but disagree with whoever entered `CS34ZC`, and both
+cables may legitimately exist for different purposes.
+
+**Trigger still open.** 1363's 16 rows are not derivable from I/O at all (see
+Q15), so registering the cable in `4_Bus` does not by itself generate them.
 
 ---
 
@@ -157,13 +245,33 @@ even though the specific WP cable is still one observation.
 
 ## Section 2 — Conflicts held from the master dictionary (Standaarden CCA)
 
-### Conflict A — Transportpomp voeding *(unchanged)*
-| Source | Cable |
-|---|---|
-| Standaarden CCA | `4g1,5` |
-| Duitslandlaan / Fonkel / Tilburg (validated) | `4g2,5` |
+### Conflict A — Transportpomp voeding — **CLOSED 2026-08-18**
 
-Three projects vs one line of standard. Ask Rick.
+The reissued CCA dictionary moves `Transportpomp voeding` from `4g1,5` to
+`4g2,5`, along with every other `1,5` cross-section in the document. The three
+validated projects were right and the standard was stale. `3_Voedingen` already
+held `2,5`, so **no config change was needed** — the pipeline had been correct
+all along.
+
+The load-based reading below still stands and is the general answer (see Q18);
+this entry is closed only in the sense that the standard no longer disagrees.
+
+Original 2026-07-31 reframing follows.
+| Source | Cable | Load |
+|---|---|---|
+| Standaarden CCA | `4g1,5` | unspecified |
+| Duitslandlaan / Fonkel / Tilburg (validated) | `4g2,5` | unspecified |
+| **1363 `161CP_11/12` transportpomp** | **`4G6`** | **22 kW / 39,2 A / 400V** |
+| **1363 `091CP_21` transportpomp ketelcircuit** | **`3G2,5`** | **0,76 kW / 3,45 A / 230V** |
+
+**This may not be a conflict at all.** 1363 shows the same device type taking
+`4G6` at 22 kW and `3G2,5` at 0,76 kW, which suggests cross-section is a
+function of **load, not device type**. If so, `4g1,5` and `4g2,5` are both
+correct at different loads and the "conflict" is an artefact of comparing
+cables without their currents.
+
+Supersedes the earlier reading. See **Q18** — ask Rick for the sizing table
+rather than which single value is authoritative.
 
 ### Conflict B — Ketel vrijgave/storing/sturing 0-10V *(unchanged)*
 | Source | Cable |
@@ -181,18 +289,31 @@ Three projects vs one line of standard. Ask Rick.
 Standard counts per-signal; three projects now bundle. 2195-06 extends the
 pattern beyond warmtepompen to pumps generally. See Section 6 Q7.
 
-### Conflict D — Warmte-/koudemeter voeding *(unchanged)*
+### Conflict D — Warmte-/koudemeter voeding — **FOURTH VALUE 2026-07-31**
 | Source | Cable |
 |---|---|
-| Standaarden CCA | `3g1,5` |
+| Standaarden CCA | `3g1,5` (power) |
 | Boerhaave (validated) | `3X1` stuurstroom |
-| 7268 | `3g2,5` |
+| 7268 | `3g2,5` (power) |
+| **1363 (`072EM11`, `062EM01`, `061EM01`)** | **`JOBA STUURSTR HHJZ 4X1 MT`** ×3 |
 
-### Conflict E — Warmtewiel voeding *(unchanged)*
+1363 sides with Boerhaave on *stuurstroom rather than power*, but at `4X1`
+rather than `3X1`. So: two sources say power cable, two say stuurstroom, and
+the two stuurstroom answers disagree on core count.
+
+Note 1363 pairs each meter voeding with a separate `4-20mA sturing` row
+(`JOBA ST.STR B2CA HCHOZ 2X1 MT`) — a two-cable pattern the config does not
+model. Worth showing Rick alongside the question.
+
+### Conflict E — Warmtewiel voeding — **CLOSED 2026-08-18**
 | Source | Cable |
 |---|---|
-| Standaarden CCA | `3g1,5` |
+| Standaarden CCA (old) | `3g1,5` |
 | 7268 (row 56, LBK) | `3G2,5` |
+| **Standaarden CCA (reissued)** | **`3g2,5`** |
+
+Same stale-value artefact as Conflict A. `2_Kabelkeuze` row 22
+(`WARMTEWIEL_VOEDING`) updated to `3G2,5` in all four family columns. **Closed.**
 
 ### Conflict F — Wateroverlastdetectie — **NEW**
 | Source | Cable |
@@ -200,8 +321,12 @@ pattern beyond warmtepompen to pumps generally. See Section 6 Q7.
 | `2_Kabelkeuze` row 38 comment | `1x2x0,8` |
 | Same comment, CV Transport section | `4x0,8` |
 | **2195-06 manual (10 rows)** | **`DRAK SIGK 1X4X0,8 B2CA HA500`** |
+| **7222 manual (2 rows)** | **`DRAK SIGK 1X4X0,8 B2CA HA500`** |
 
-Third value. Ask Rick which applies where.
+**Fourth value, but two projects now agree.** 7222 and 2195-06 both use
+`1X4X0,8`, against the reissued dictionary which still carries **two** values
+(`4x0,8` under CV Transport, `1x2x0,8` under Onderstation algemeen). Ask Rick
+which applies where.
 
 ### Conflict G — Werkschakelaar melding — **NEW**
 | Source | Cable |
@@ -209,15 +334,30 @@ Third value. Ask Rick which applies where.
 | `2_Kabelkeuze` row 44 | `4X0,8` (both families) |
 | **2195-06 manual (12 rows)** | **`DRAK B2CA GY 2X0,8 MT`** |
 
-### Conflict H — Tracing voeding — **NEW, two observations**
+### Conflict H — Tracing voeding — **CLOSED 2026-08-18 at `5G2,5`**
+
+The reissued dictionary confirms `5g2,5`, and 7222's manual uses `5G2,5` on six
+rows. The `3G2,5` cases on Fonkel and 2195-06 are most likely smaller loads
+(Q18) rather than a different rule.
+
+**Follow-up:** `3_Voedingen`'s `TRACING` row has CCA `5G2,5` but B2CA `3G2,5`.
+The B2CA cell looks wrong — ~6 wires on 7222. Added to Section 11.
+
+Original entry follows.
 | Source | Cable |
 |---|---|
 | Standard / most projects | `5G2,5` |
 | Fonkel | `3G2,5` |
 | **2195-06 (7 rows)** | **`3G2,5`** |
+| 1363 | *no tracing rows — neither confirms nor contradicts* |
 
-Two projects now use `3G2,5`. **We cannot see what distinguishes them from
-the `5G2,5` projects** — nothing in the input differs. Ask Rick.
+Two projects use `3G2,5`. **We cannot see what distinguishes them from the
+`5G2,5` projects** — nothing in the input differs.
+
+**Possible link to Q18:** if cross-section scales with load, `5G2,5` vs
+`3G2,5` may be a core-count difference (5-core vs 3-core) driven by whether the
+tracing circuit is three-phase. Speculative; do not encode. Worth asking in the
+same breath as the sizing table.
 
 ---
 
@@ -261,7 +401,10 @@ Fixed in `ingest.py`. Verified on 7268: 48% blind after fix.
   fallback firing where more specific types should match.
 - **`WEERSTATION_BUS` cable choice** — `DRAK SIGK CCA 1X2X0,64 MT` is the CCA
   notation for the same physical cable as the BMS Cable. Verify or split.
-- **CS34ZB vs CS34ZC** — if functionally identical, consolidate.
+- **CS34ZB vs CS34ZC** — **UPGRADED 2026-07-31.** Two projects (7268, 1363)
+  write `CS34ZB`; `COMM_RK_ONDERLING` says `CS34ZC` and is contradicted by
+  1363's manual on 16 rows. No longer a "consolidate if identical" item — it is
+  a probable config error. See Rule 3.
 - **NEW: `RAK SIGN KAB` vs `DRAKSIG KAB`** — the config uses `RAK SIGN KAB` in
   three rows; 2195-06's manual writes `DRAKSIG KAB`. Possibly a dropped `D`.
   Ask Rick which is the correct product name.
@@ -322,9 +465,17 @@ the knowledge lives in config:
 **The AI check is retained for everything else** — it is what correctly
 declines the three `Muurbeugel RVS` bracket rows.
 
-**Cable strings PROVISIONAL:** B2CA value taken from the 2195-06 manual
-(`DRAK SIGK 1X4X0,8 B2CA HA500`); CCA value copied from `METING_ACTIEF`
-(`DRAK SIGK CCA 1X4X0,8 2502Q MT`). Neither confirmed by Rick.
+**Cable strings PROVISIONAL — and now CONTRADICTED.** B2CA value taken from
+the 2195-06 manual (`DRAK SIGK 1X4X0,8 B2CA HA500`); CCA value copied from
+`METING_ACTIEF` (`DRAK SIGK CCA 1X4X0,8 2502Q MT`). Both are `1x4x0,8`.
+
+**On 2026-07-31 Rick confirmed ruimtetemperatuur = `1x2x0,8`** (see R2,
+Section 9), matching the dictionary and the existing `METING_PASSIEF` entry.
+Either 2195-06's manual deviates on these rows, or a bus-connected sensor is
+genuinely a different cable. **Unresolved — follow-up sent.**
+
+The classification fix stands regardless: ten rows that previously emitted
+nothing now emit a cable. Only the string is in doubt.
 
 ### Q5 — DRAK × B2CA has no column (BLOCKING)
 
@@ -332,7 +483,341 @@ declines the three `Muurbeugel RVS` bracket rows.
 `row["kabel_CCA_DRAK"]`. **The brand is baked into the schema**, but Rick has
 confirmed brand and fire class are independent axes.
 
-2195-06 uses **DRAK cable types at B2CA fire class**, which cannot be
+2195-06 uses **DRAK cable types at B2CA fire class**, which cannot be# Changelog
+
+Every change traced to the project and row that proved it. Buckets per
+`docs/VALIDATION_PROTOCOL.md`: BUG · CONFIG · PARAM · DATA · ASK · ACCEPT.
+
+Format: `[BUCKET] change — evidence (project / row)`
+
+---
+
+## v5 — 7222 (nieuwe regelkast, technische ruimte 4e verdieping), B2CA/DRAK, 5 panels
+First project on the **B2CA/DRAK** family combination and on the client8 layout.
+Manual: 793 wires over five panels (RK1 349, RK02 166, RK03 155, RK04 55,
+RK05 55) plus a Naregelingen sheet, 6-2-2026, Rick van Deurzen.
+
+Blind 22.6% → **33.4% exact / 45.4% on conductor specs**. Four fixes merged;
+merge gate 3/3 green. The dominant remaining error is one config cell.
+
+Full detail in `OPEN_QUESTIONS.md` Section 0d.
+
+### PARAM — `signaalfamilie` inherited again (4th occurrence)
+Run made with `signaalfamilie = JOBA`; this client is **DRAK**. Emitted
+`JOBA ST.STR B2CA HCHOZ 2X1 MT` ×361 against a manual count of 35, and zero of
+the manual's three commonest cables. The same run scored 77.3% when cables were
+collapsed into function buckets — the classifier was working and the parameter
+hid it. *(7222 / whole list)*
+
+**Fourth run lost to `0_Parameters`.** The parameter echo on the summary line is
+still the highest value-per-line change outstanding; add a staleness warning
+when `brandklasse`/`signaalfamilie` are unchanged from the previous run.
+
+### BUG — `classify_row` was blind to `procescode`
+The client8 layout puts the device name in the tag column and a part number in
+`Omschrijving` (`Dakafvoerkap (droog)` / `Servomotor Open/Dicht`;
+`Buitenluchtklep` / `GCA126.1E Damper actuator`). The match text was
+`omschrijving + type + opmerking`, so the identifying word was invisible.
+Added `norm.procescode`. *(7222 / r144-145 + Buitenluchtklep rows)*
+
+Verified with the new `classify_diff.py`: three locked projects NO CHANGE, 7222
+28 rows changed, **all `None → type`** — nothing already classified was
+reclassified. 11 spec matches.
+
+### BUG — `DO` was invisible to the whole signal path
+`classify.py`'s I/O fallback went `AI → DI → AO`; `_ok()` in `rules.py` gated on
+`AI`/`DI`/`AO`. A device whose only signal is a digital **output** selected no
+type and no cable. Added a `DO` branch → new `KLEP_OD_ZONDER_TERUGMELDING`
+(`4x0,8`). `KLEP_OD` could not be reused — it is the with-feedback variant
+(`8X0,8`, "open/close + feedback(s)"). *(7222 / r144-145 Dakafvoerkap,
+`Voeding=230`, `Digital uit=1`; manual 139-142 = feed + `GY 4X0,8`)*
+
+Recorded because it cost three runs: widening `_ok()` to accept `DO` for
+`MELDING`/`VRIJGAVE`/`BEDRIJF_STORING` made every DO-only row select
+`BEDRIJF_STORING` (`6X0,8`) and masked the new type. Reverted.
+
+### CONFIG — `servomotor` synonym removed
+It names the **actuator**, never the device, and collided in three directions:
+2195-06's `Brandklepservomotor levring derden` (ties with `brandklep` at prio
+70, wins on length — 13 rows on an unfixtured project), 7222's 14
+`ChangeOver6 Servomotor … temperatuur sensoren` (beat `temperatuur` at 65), and
+7268's 6 Energy Valve accessories.
+
+**New general rule:** component and attribute nouns (`servomotor`,
+`hulpschakelaar`, `aansluitset`, `base`, `module`) must not become device
+classes. Same failure as the v3 `DERDEN` primary-hijack, from a different
+direction. *(7222, 2195-06, 7268)*
+
+### CONFIG + BUG — pump signal rule
+`POMP` classified correctly but was **inert** — absent from `sig_priority`, so
+it could never select a signal cable. 7222 emitted `GY 2X0,8` on 40 pump rows;
+2195-06 emitted nothing on five.
+
+**Rick 2026-08-18:** the cable follows the **signal count**, not the pump type —
+2 signals → `1x4x0,8`, 3 signals → `3x2x0,8`. Confirmed by the reissued CCA
+dictionary (nine two-signal pump rows) and 7222's manual (`Circulatiepomp
+vrijgave/storing` → `1X4X0,8` ×8; `Transportpomp vrijgave/storing/sturing` →
+`3X2X0,8` ×32). Encoded as `POMP_2_SIGNALEN` / `POMP_3_SIGNALEN`, counted from
+the I/O columns. **Pump-specific — do not generalise:** the same dictionary
+gives a three-signal ketel `1x4x0,8` and a two-signal ventilator `2x2x0,8`.
+19 wires. *(7222 / pump rows)*
+
+### CONFIG — reissued CCA dictionary (Rick, 2026-08-18)
+Every `1,5` cross-section → `2,5` (19 device types); 27 signal rows
+`2x2x0,8 → 1x4x0,8`. Applied to `2_Kabelkeuze` rows 20, 22 and 45 (12 cells).
+`3_Voedingen` needed no change — already at `2,5`.
+
+**Closes Conflict A** (transportpomp `4g1,5` vs the validated projects' `4g2,5`
+— the standard was stale, the projects were right), **Conflict E** (warmtewiel)
+and **Conflict H** (tracing, at `5G2,5`).
+
+`SMOORAFSLUITER` deliberately left at `7G1,5`: that value comes from Tilburg's
+validated manual, not the standard. ASK.
+
+### CONFIG — `header_map_client8.xlsx`
+17 columns, five rows beyond the defaults. Note `Digital uit` — a **typo in the
+client sheet** (missing the second `a`); without the map row, DO reads 0
+sheet-wide with no flag.
+
+### DATA — fourth silent-drop mechanism
+The raw input has 26 columns in three repeating blocks; `cols.setdefault` keeps
+only the first occurrence of each field and discards the rest with no flag.
+Merged in Excel to get the run through, which breaks the blind-run contract.
+Proper fix: collect every column index per field in `ingest`. *(7222 / raw
+input)*
+
+### NOT FIXED — the largest item
+`kabel_B2CA_DRAK` `METING_PASSIEF` holds `DRAK SIGK B2CA 1X2X0,8 2501 MT`; the
+manual uses `DRAK SIGK 1X4X0,8 B2CA HA500` on 220 rows. Right rows, wrong
+string — **~190 wires from one cell**, more than everything merged here
+combined. Blocked on an ASK: the reissued dictionary moved drukopnemers to
+`1x4x0,8` but left field temperature sensors at `1x2x0,8`.
+
+### ASK
+Field sensor cable (~190 wires) · `Levering CWD/W` scope (~83) · open/dicht core
+count (58 rows) · `SMOORAFSLUITER` `7g1,5` vs `7g2,5` · `3_Voedingen` `TRACING`
+B2CA cell · `Leeswaarde`/`Verzendwaarde` · six `Detector` rows.
+See `OPEN_QUESTIONS.md` Section 11, items 17-26.
+
+### Tooling
+`classify_diff.py` (required before any synonym or match-text change) and
+`probe4.py` (verifies a classify edit reached the running code).
+
+### NOT LOCKED
+No fixture — the largest fix is untouched pending the sensor ASK.
+
+**Process note.** Two `classify.py` edits sat unsaved for hours while three runs
+were scored against code that did not contain them: VS Code's dirty-write guard
+makes autosave a silent no-op once the on-disk mtime diverges. Verify with
+`probe4.py` or `git status` before scoring. Prefer scripted patches.
+
+---
+
+## Sessions not recorded here
+2195-06 (2026-07-30), 1363 (2026-07-31) and 7267 (2026-08-01) shipped code and
+config changes that were logged in `OPEN_QUESTIONS.md` Sections 0, 0b and 0c
+rather than here. The v-numbering therefore jumps from v4 to v5 across three
+working sessions. Scores for all projects are in `OPEN_QUESTIONS.md` Section 12.
+
+---
+
+## v4 — Fonkel Breda (PR 20267276-2600214), B2CA Kuijpers
+Blind score ~89% (54/61). All misses structural; **zero cable-knowledge errors**.
+Three BUGs fixed; two structural items remain batched.
+
+### BUG — device deduplication (`rules.dedupe_devices`)
+- **Duplicate Regelkast rows.** Fonkel's input has two RK rows → two Voedingen
+  rows → `derden=2`; manual has one row, `derden=1`. Now at most one Regelkast
+  row per panel. *(Fonkel / Voedingen 1-2)*
+- **Multi-feed devices split.** The WP is listed once per feed (hoofdvoeding +
+  condensor; secundaire voeding + verdamper) → two feed rows **and two 12X1
+  meldingen bundles**. The manual bundles to one "Warmtepomp" row and one 12X1.
+  Rows now merge on `(rk, type, group, name-stem)`, unioning I/O counts so the
+  2+2 DI become one 4-DI bundle. *(Fonkel / Voedingen 2-3 + Warmtepomp 1-2;
+  reproduced identically on Duitslandlaan raw input)*
+- **Key design note.** Keying on `(rk, type)` alone collapsed Boerhaave's THREE
+  physical heat pumps into one — caught immediately by the merge gate. The key
+  therefore carries group + name stem: one device listed twice merges, three
+  devices stay three. *(caught by Boerhaave regression)*
+
+### BUG — section ordering / naming
+- **Accessory rows became section names.** Non-M&R rows were treated as group
+  headers, producing sections `safety kit`, `TSA PN16`,
+  `Deelstroomfilter Deel-SEP GKW`. A non-M&R row is a header only when it is
+  bare (no procescode, no fabricaat, no type, no I/O); accessories carry
+  equipment data. *(Duitslandlaan+Fonkel raw / sections)*
+- **Devices sharing a procescode could be reordered.** `Circulaite pomp 1` and
+  `2` both carry `091CP_21`; scattered across junk sections they emitted 2-then-1
+  (which read as "pump 2 missing" in the Fonkel diff). Sections are now ranked by
+  the smallest sort_key they contain, so process-code order drives sections and
+  input order drives rows within them. *(Fonkel / rows 57-60; reproduced on
+  Duitslandlaan)*
+
+### CONFIG/RULE — the LOCATION-BANNER rule (resolved once the input arrived)
+The Fonkel functielijst (PREC000155) settled the batched group-naming question.
+Its group headers are **locations**, not equipment: `Installaties op het dak` and
+`Installaties buiten bij buffervat`. The manual converts them:
+
+| input group | manual section | manual bekabeling naar |
+|---|---|---|
+| Installaties op het dak | **Warmtepomp** | **op dak** |
+| Installaties buiten bij buffervat | **Buffervat CV** | **Buiten TR** |
+
+So the rule is: *an input group is a section name unless it is a location banner,
+in which case it becomes the location and the section falls back to the
+equipment.* This reconciles both projects — Boerhaave's groups (`Warmtepomp 1/2/3`)
+are equipment names and stay verbatim; Fonkel's are locations and convert.
+
+Encoded as a new config tab **`6_Locatiekoppen`** (pattern → locatie →
+sectie_fallback), so estimators maintain it. Result: **all 10 Fonkel sections now
+match the manual exactly**, and `Buiten TR` ×3 / `op dak` ×2 land in the right
+column. *(Fonkel / sections + rows 16-18, 1-2)*
+
+This is the protocol working as designed: the rule was held back at one
+observation, and the second observation made the right design obvious. Guessing
+after Fonkel's blind run alone would have produced a mapping table that broke
+Boerhaave.
+
+### Still batched
+- **Tracing sub-panel** (Fonkel page 5: own Voedingen, `derden=0`, 2 cables, no
+  RK code). Still one observation. The Fonkel input marks tracing "optioneel
+  vanuit regelkast" — a hint it is quoted separately — but one hint is not a rule.
+
+### ASK
+- `Totaal ws` = 0 while the column holds 8 entries (Fonkel) / 10 (Duitslandlaan).
+  Two projects, two estimators, same contradiction. **Still unencoded.**
+
+### LOCKED
+Fonkel is now regression #3: `projects/fonkel/test.py`, **18/18**.
+Merge gate: **3/3 projects green**.
+
+---
+
+## v3 — Boerhaave Leiden (PR 20267275.1), CCA renovation, 2 panels
+Blind score: ~20% usable → after fixes: 15/15 regression.
+First project on the Coneco layout. Broke in three ways at once (wrong header
+map, corrupted input, unknown house rules) — the failure pattern that motivated
+the whole protocol.
+
+### BUG
+- **Primary-match classification.** Substring matching let "Elektrameter
+  **warmtepomp**" and "temp GKW **warmtepompen**" trigger the WARMTEPOMP branch →
+  11 phantom feed rows. `classify` now picks one primary type (highest priority,
+  longest pattern) at `functietypes[0]`; `emit` branches on that alone.
+  *(Boerhaave / rows 6, 17, 28)*
+- **DERDEN hijacked primary.** A scope attribute was outranking the device class,
+  silently eating energiemeter voeding rows. DERDEN is now demoted out of
+  primary position. *(Boerhaave / energiemeter rows)*
+- **Literal feed templates.** A `bekabeling_naar_sjabloon` without `{}`
+  placeholders was discarded instead of used verbatim → "voeding doorlussen" lost.
+  *(Boerhaave / tracing rows 14, 22)*
+
+### CONFIG
+- **Mixed family within one project.** The house standard picks family *per
+  function type*, not project-wide: measurement = DRAK SIGK CCA, stuurstroom =
+  JOBA STUURSTR, power = DRAK HULT CCA. Fitted the existing schema — cell edits
+  only, no redesign. *(Boerhaave / whole list)*
+- `SMOORAFSLUITER` → `JOBA STUURSTR HHJZ 7X1 MT` *(Boerhaave / rows 3-6)*
+- `METER_VOEDING_24V` CCA → `JOBA STUURSTR HHJZ 3X1 MT` (B2CA stays 5X1)
+  *(Boerhaave / rows 1, 8, 16)*
+- `TRACING` CCA → `DRAK HULT CCA 5G2,5 MT` + "voeding doorlussen"
+  *(Boerhaave / rows 14, 22)*
+- New types: `EVERDELER_METER` (bus row → Onderstation algemeen),
+  `NIET_BEKABELEN` candidates *(Boerhaave / rows 30-32)*
+- Synonyms: `elektrameter`, `smoorafsluiter`, `leidingverwarming`; raised
+  `temperatuur` priority above `warmtepomp` to fix the over-match.
+
+### PARAM
+- `regelkast_bestaand` (ja/nee) → "Bestaande regelkast geen aanpassingen"
+  *(Boerhaave / RK01+RK03 Voedingen row 1)*
+- `wp_aansluiten_erco` (ja/nee) → "Kabel levering derde totaan WP, aansluiten
+  WPzijde Erco" *(Boerhaave / Voedingen rows 3-4)*
+- `brandmelding_standaard` (ja/nee) — renovation lists have no new fire-alarm
+  cable *(Boerhaave / no brandmelding row)*
+- Per-family columns `ws_CCA`/`ws_B2CA` and `sjabloon_CCA`/`sjabloon_B2CA`,
+  because the two validated projects genuinely disagree on tracing ws and
+  templates. *(Boerhaave vs Duitslandlaan / tracing)*
+
+### RULE CHANGE
+- **`Totaal voedingen derden aansluiten` refined.** v2 said "cables arriving at
+  the RK". Boerhaave counts a WP-side termination. New rule: **count every feed
+  row Erco terminates, wherever it terminates.** Both projects now correct
+  (Duitslandlaan=1, Boerhaave=2). *(Boerhaave / Voedingen totals)*
+
+### FEATURE
+- **Multi-RK.** `run_per_rk()` groups by the `rk` field; one output file per
+  panel. *(Boerhaave / RK01 + RK03)*
+
+### DATA
+- `IO_cut.xlsx` contains dead `#VALUE!`/`#REF!` formulas where DI/DO/AI counts
+  belong. Ingest now parses `*1` markers as 1, treats error tokens as 0, and tags
+  the row `[!formula errors in ...]` so the review file shows exactly where.
+  Not a rules problem — a review-gate problem. *(Boerhaave / rows 10-13, 38-44)*
+
+### ACCEPT
+- WP1 bus row present in output, absent in manual (renovation decision).
+- Chain labels: engine writes "doorlussen"; manual uses "Uit WP 1"/"Uit WP 2".
+- "maximaal 40 meter" — length is human input (§6 ambiguity).
+
+---
+
+## v2 — Duitslandlaan Zoetermeer (PR 20267283), B2CA new-build
+Blind score: ~83% structural, 24% exact-string → after fixes: 18/18 regression.
+
+### PARAM
+- **`brandklasse` is mandatory and non-derivable.** Defaulting it to CCA
+  produced ~35 wrong rows from one wrong cell. The CLI now refuses to run when
+  it is empty. Single most valuable finding of the project.
+  *(Duitslandlaan / whole list)*
+
+### CONFIG / RULE CHANGE
+- 400V frequency-controlled pumps (TPE3) = **4G2,5** (no neutral), not 5G2,5 —
+  a genuine error in the v1 table. *(Duitslandlaan / rows 31,33,38,40)*
+- Group order = **ascending process-code prefix** (071→081→091), not raw input
+  order. *(Duitslandlaan / Korex placement)*
+- In B2CA/JOBA projects everything is **MT**; HA500 exists only inside the BMS
+  cable product name. *(Duitslandlaan / whole list)*
+- `bekabeling naar` for motor feeds = kW/A/V string from the input E-data.
+  *(Duitslandlaan / rows 31,45)*
+- Modbus **IP** field device → BMS cable, **not** UTP. UTP stays for touch panels
+  and panel-to-panel. *(Duitslandlaan / Korex row 30)*
+- Energiemeter = bus **plus** a separate 24V feed cable. *(Duitslandlaan / 11,12)*
+- Meter option sensors (PT100 "Optie C1") → "Via aansluitsnoer van 2 meter op
+  meter", no cable. *(Duitslandlaan / rows 13,14,25,26)*
+- WP meldingen → one 12X1 bundle, not split per feed side. *(Duitslandlaan / r2)*
+- E-ketel signals split: vrijgave/storing 5X1 + **separate** sturing 2X1.
+  *(Duitslandlaan / rows 53,54)*
+- Brandmelding always closes Onderstation algemeen, even when absent from the
+  input. Outdoor sensor only when present. *(Duitslandlaan / row 63)*
+- Powered field instruments up to ~30 VA: signal + supply on one cable.
+  *(Duitslandlaan / row 10)*
+
+### ASK
+- **`Totaal ws` = 0 while the ws column holds 10 entries.** Unexplained.
+  Not encoded.
+
+---
+
+## v1 — initial rules from five project pairs
+Den Dullaert, Avans, ISH, Schiphol, ZRD + "Standaarden CCA".
+Established: canonical types, cable tables, project parameters, output
+structure, known ambiguities. Never blind-validated.
+
+---
+
+## Open items (not encoded — need answers)
+
+**The live list is `OPEN_QUESTIONS.md` Section 11** — 26 items, ordered by wires.
+The table below is the original v1-v4 set, kept for provenance.
+
+| # | Item | Seen in | Status |
+|---|---|---|---|
+| 1 | `Totaal ws` = 0 while ws column is populated | Duitslandlaan (10), Fonkel (8), 7268, 2195-06, 1363 | **ASK Rick.** Five projects. Cosmetic — ws does not affect the wire list. |
+| 2 | Group naming: input groups authoritative (Boerhaave) vs wrong (Fonkel) | Boerhaave, Fonkel | **RESOLVED v4** — `6_Locatiekoppen`. |
+| 3 | Sub-panels without an RK code (Fonkel "Tracing" page) | Fonkel, 2195-06 | **Batched.** See OQ Q12. |
+| 4 | WP-internal water temps get no cable | Boerhaave | Candidate `NIET_BEKABELEN`. One observation. |
+| 5 | `Buiten TR` as a third location value | Fonkel | **RESOLVED v4** — `6_Locatiekoppen`. |
+| 6 | Whether client-specified WSK columns override the engine | klemmenlijst layout | Ask before wiring. |
 expressed. Neither column reproduces the manual:
 - the CCA column has the right type codes at the wrong fire class
 - the B2CA column has the right fire class but JOBA type codes, and is much
@@ -498,6 +983,11 @@ a 230V single-phase supply is unusual — `_feed_class` treats 4-core as
 **Ask Rick:** are the hemelwaterpompen actually 400V? Should `POMP` split into
 two function types, or should the tag prefix be read?
 
+**PARTIALLY CLOSED 2026-08-18.** The *signal* half is answered — see Section 0d,
+the pump signal rule. The *feed* half stays open and folds into Q18 (load-based
+sizing): nothing in the row distinguishes a `3G2,5` pump from a `4G2,5` one
+except the tag prefix.
+
 ---
 
 ## Section 7 — Document discrepancies for the project contact (not Rick)
@@ -540,3 +1030,763 @@ See Q9.
 - **Do not conflate projects.** 7268's 48% is not ZRD's 48%.
 - **Do not report a gain within counting noise**, e.g. between two
   transcriptions of the same manual.
+
+---
+
+## Section 8b — Re-audit log, 2026-07-31
+
+Every pre-existing entry was re-tested against project 1363 and Rick's answers,
+rather than only appending new findings. Result:
+
+| Entry | Verdict |
+|---|---|
+| **Rule 1 name-based list** | **PARTLY FALSIFIED.** `overspanningsbeveiliging` disproven by 2195-06 (three outcomes for one name). Remaining sixteen names downgraded to unverified. A prior revision of this file wrongly stated none of these names appear in 2195-06. |
+| **Rule 2 (Energy Valve)** | **CONFIRMED** by Rick, but scope grew — a Modbus cable comes with it. Still blocked on B2CA equivalent + which Modbus cable. |
+| **Rule 3 (CS34ZB)** | **SECOND OBSERVATION** from 1363's NEXT panel. Cable string now well supported; trigger still one observation. |
+| **Rule 4 (WP diverse functies)** | Unchanged. 1363 has no WP rows. |
+| **Conflict A (transportpomp)** | **REFRAMED.** 1363 shows `4G6` at 22 kW and `3G2,5` at 0,76 kW for the same device type — probably a load-sizing question (Q18), not a conflict. |
+| **Conflict B (ketel)** | Unchanged. 1363's ketel rows use `HHJZ 5X1` + `HCHOZ 2X1`, consistent with Duitslandlaan's split reading rather than the standard's single `2x2x0,8`. Weak support for the validated side. |
+| **Conflict C (WP meldingen)** | Unchanged since the 2026-07-30 strengthening. |
+| **Conflict D (meter voeding)** | **FOURTH VALUE.** 1363 gives `JOBA STUURSTR HHJZ 4X1 MT`. |
+| **Conflict E (warmtewiel)** | Unchanged. No warmtewiel rows in 1363 or 2195-06. |
+| **Conflict F (wateroverlast)** | Unchanged. No wateroverlast rows in 1363. |
+| **Conflict G (werkschakelaar)** | Unchanged. No werkschakelaar melding rows in 1363. |
+| **Conflict H (tracing)** | Unchanged; 1363 has no tracing rows. Possible link to Q18 noted. |
+| **Q1 (ws = 0)** | Unchanged. 1363 shows `Totaal ws = 0` on all four panels while individual rows carry ws=1 — a **fifth** project, but the priority stays low since ws does not affect the wire list. |
+| **Q2 (sheet-to-panel merge)** | **SECOND OBSERVATION** — 1363's single input produces four panels. See Q19. |
+| **Q3 (Naregelingen BOM)** | Unchanged. 1363 has no BOM-material rows. |
+| **Q5 (DRAK x B2CA)** | **SHARPENED** by Q17 — the problem may be that fire class is per-cable, not that a third column is missing. |
+| **Q6 (point-less rows)** | Unchanged; specific to the Priva layout. 1363 (Kuijpers) has none. |
+| **Q7 (bundling)** | Unchanged. 1363 emits one cable per signal, matching the pipeline — so bundling is **not** universal across clients. Mild evidence against a global rule. |
+| **Q9 (electrode aantal)** | Unchanged. |
+| **Q10 (panel-internal)** | **STRENGTHENED indirectly** — the `overspanningsbeveiliging` finding depends on it (`regelkast` internal, `verdeelkast` wired). |
+| **Q11 (no naive tab-2 assertion)** | Unchanged and still correct. |
+| **Q12 (tracing panel)** | Unchanged. |
+| **Q13 (pump feed cores)** | **POSSIBLY SUBSUMED** by Q18 — if cross-section scales with load, `3G2,5` vs `4G2,5` may be a load question rather than a device-type question. |
+| **Section 5 hygiene: CS34ZB/ZC** | **UPGRADED** to a probable config error. |
+| **Section 5 hygiene: `RAK SIGN KAB`** | Unchanged, still unconfirmed. |
+
+**Process note.** The `overspanningsbeveiliging` error persisted through two
+revisions of this file because new projects were appended without re-testing
+existing claims. Every future update should re-run this audit rather than only
+adding sections.
+
+---
+
+## Section 9 — Rick's answers, 2026-07-31
+
+### R1 — Energy Valve → 4x0,8 **plus a Modbus cable** (CONFIRMS Rule 2)
+
+Rick confirms the Energy Valve cable is `4x0,8` and that it also carries a
+Modbus koppeling.
+
+This **promotes Rule 2** (Section 1) from one observation to confirmed by the
+standard. The Modbus half also confirms the territory of Rule 3.
+
+**Still needed before encoding:**
+1. **B2CA equivalent** — Rule 2 records this as unknown, and no validated
+   project supplies it.
+2. **Which Modbus cable** — the standard
+   `BMS Cable 2x2x24AWG - R1319 - B2ca s1,d0,a1 Violet HA500`, or the Delta
+   Controls `COMM U/UTP CAT6 CS34ZB HA305` variant from Rule 3?
+
+Once those two are answered, Rule 2 can ship as a config-only change.
+
+### R2 — Ruimtetemperatuur → `1x2x0,8` (CONFIRMS existing encoding, but
+### CONFLICTS with the 2195-06 `METING_BUS` provisional value)
+
+Rick confirms `1x2x0,8`, matching both the dictionary and the config's existing
+`METING_PASSIEF` CCA value `DRAK SIGK CCA 1X2X0,8 2501 MT`. Nothing to change
+for normal passive sensors.
+
+**But this contradicts the `METING_BUS` row added on 2026-07-30.** That row's
+B2CA value is `DRAK SIGK 1X4X0,8 B2CA HA500`, taken from the 2195-06 manual's
+ruimtetemperatuuropnemers, and its CCA value was copied from `METING_ACTIEF`
+(`1X4X0,8 2502Q`). Both are `1x4x0,8`, not `1x2x0,8`.
+
+Two possible readings, and we do not know which:
+- 2195-06's manual deviates from the standard on these rows, or
+- a **bus-connected** sensor (NSB8BTN, no AI) is genuinely a different cable
+  from a normal passive sensor
+
+**Follow-up for Rick:** *"2195-06 uses NSB8BTN network sensors with no AI, and
+its manual gives them `1x4x0,8`. Is that different from a normal
+ruimtetemperatuuropnemer, or should they also be `1x2x0,8`?"*
+
+Until answered, the `METING_BUS` cable values stay marked PROVISIONAL. The
+classification fix (10 rows that previously emitted nothing) stands regardless
+— only the string is in doubt.
+
+### R3 — Waterpomp "4 x 2" — AMBIGUOUS, do not act
+
+Rick indicated roughly `4 x 2` for waterpomp, with uncertainty on our side
+about what was meant. Two very different candidates:
+
+| Reading | Cable | Purpose |
+|---|---|---|
+| `4G2,5` | `DRAK HULT ... 4G2,5` | 400V power feed — already in config |
+| `4x2x0,8` | `DRAK SIG B2CA GY 4X2X0.8 HA500` | shielded signal bundle |
+
+2195-06's manual gives `DRAK SIG B2CA GY 4X2X0.8 HA500` for
+"Vuilwaterpomp diverse functies", which favours the second reading — but that
+is inference, not confirmation.
+
+**Do not encode.** Ask Rick for the full cable string verbatim.
+
+---
+
+## Section 10 — NEW from project 1363 (Kuijpers, B2CA/JOBA, four panels)
+
+### Q14 — `JOBA STUURSTR HHJZ 5X1 MT` never emitted (20 wires) — **CABLE QUESTION CLOSED 2026-08-18**
+
+**Rick confirms `JOBA ST.STR B2CA HCHJZ 5X1 MT` ≡ `JOBA STUURSTR HHJZ 5X1 MT`.**
+The config value was never wrong; the gap was partly a wording artefact.
+
+**But the 20 wires are not simply recovered.** 1363's 45% was computed by hand
+transcription before the equivalence was known, so those rows may have been
+counted as misses on wording alone. **Re-score 1363 with an equivalence-aware
+comparison before assuming the gap is closed.**
+
+The classification half of Q14 is superseded by the pump signal rule
+(Section 0d). Original entry follows.
+
+The largest single gap. This is the bedrijf/storing cable, used throughout the
+manual: circulatiepomp bedrijf/storing, droge koeler vrijgave/storing, ketel
+vrijgave/storing, afzuigventilator vrijgave/bedrijf, brandklep melding,
+lichtcontact, noodschakelaar.
+
+The config's `BEDRIJF_STORING` and `VRIJGAVE_STORING` both map to
+`JOBA ST.STR B2CA HCHJZ 5X1 MT` — the **ST.STR** variant, not **STUURSTR**.
+
+**Unresolved:** is this a config value error (wrong variant for these types), or
+are the rows classifying to a different type entirely? Needs a classification
+probe on the 1363 input before deciding. Possibly the single cheapest 20 wires
+available.
+
+### Q15 — Panel-topology cables not derivable from I/O (16 wires)
+
+The `NEXT` panel is entirely `Datacommunicatiekabel regelkast RK<nnn>` — 16
+rows, one per other regelkast in the building (RK161, RK085, RK072, RK851,
+RK062, RK061, RK081, RK861, RK071, RK181–185, RK031, RK021).
+
+**These do not come from I/O rows at all.** They are derived from the panel
+topology of the project. Nothing in a functielijst generates them.
+
+Also note the cable is **`COMM U/UTP CAT6 CS34ZB HA305`** — the config's
+`COMM_RK_ONDERLING` says **`CS34ZC`**. See Section 5; this is now a **second
+observation** for CS34ZB (first was Rule 3, Delta Controls on 7268).
+
+**Ask Rick:** is the RK-onderling cable CS34ZB or CS34ZC? And is the
+bus-koppeling panel something Erco always produces, i.e. should the pipeline
+generate it from a list of panels?
+
+### Q16 — Smoorklep / omschakelafsluiter → `JOBA STUURSTR HHJZ 10X1 MT` (15 wires)
+
+The manual gives `HHJZ 10X1` to every smoorklep. The input calls the same
+devices `Omschakelafsluiter 1 GKW droge koeler (Glycol)` and
+`Blokkeerafsluiter 1 transport CO`; the manual calls them `Smoorklep`.
+
+The pipeline emits `JOBA ST.STR B2CA HCHJZ 7X1 MT` ×2 and
+`JOBA STSTR B2CA HCHJZ 7X1 MT` ×2 — so a few rows classify as
+`KLEP_OD`/`SMOORAFSLUITER` but choose 7X1, and 11 rows miss entirely.
+
+Two separate problems: a **synonym gap** (`omschakelafsluiter`,
+`blokkeerafsluiter` → smoorklep) and a **cable-value question** (7X1 vs 10X1).
+
+Note `2_Kabelkeuze` already has `BRANDVENTILATIESCHAKELING` at
+`JOBA STUURSTR HHJZ 10X1 MT` with the comment *"Tilburg B2CA: 10X1 — observed
+exception"*. So 10X1 exists in the config; it is just not reachable from these
+device names.
+
+### Q17 — Feed cables are CCA-labelled inside a B2CA project (10 wires) — **TWO OBSERVATIONS**
+
+1363's manual is B2CA/JOBA throughout for signal cables, but every feed is
+written **CCA**:
+
+| Manual feed | Count | Pipeline emitted (B2CA) |
+|---|---|---|
+| `DRAK HULT CCA 3G2,5 HA500` | 5 | `DRAK HULT B2CA 3G2,5 MT` |
+| `DRAK HULT CCA 4G4 MT` | 3 | `DRAK HULT B2CA 4G2,5 MT` |
+| `DRAK HULT CCA 4G6 MT` | 2 | `DRAK HULT B2CA 4G2,5 MT` |
+
+**This mirrors 2195-06**, where DRAK-branded signal cables appeared inside a
+B2CA project. Two projects now show that **the feed cable's fire class is not
+the project's fire class**.
+
+This is a much sharper version of Q5. Combined:
+- 2195-06: DRAK signal cables at B2CA
+- 1363: CCA feeds inside a B2CA/JOBA project
+
+**Ask Rick:** is the fire class per-cable rather than per-project? If so,
+`brandklasse` as a single project-level switch is the wrong model.
+
+### Q18 — Feed cross-section scales with load — **THIRD OBSERVATION 2026-08-18, now self-evidenced**
+
+7222 adds `4G4` (7,5 kW/400V ×4), `5G6` (11 kW/400V ×2) and `5G2,5` (tracing ×6),
+none of which exist in `3_Voedingen`.
+
+**More decisive: the reissued dictionary contradicts itself by design.**
+`Circulatiepomp voeding` appears as `4g2,5` in six sections and `3g2,5` in
+another — same device, same document. Cross-section is load-driven; core count is
+phase-driven. This is no longer a hypothesis, and it means Conflicts A, E and H
+were never conflicts.
+
+**Unit trap:** 7222's input has `Vermogen = 220` on 400 V transportpompen the
+manual annotates as 2,2 kW — the input is in **watts**. Any sizing table must
+normalise units first. Same family as Q24.
+
+Original entry follows.
+
+1363's feeds:
+
+| Load | Cable |
+|---|---|
+| 22 kW / 39,2 A / 400V | `4G6` |
+| 11 kW / 20,3 A / 400V | `4G4` |
+| 0,4–0,76 kW / 230V | `3G2,5` |
+| 0,53 kW / 2,33 A / 230V | `3G2,5` |
+
+`3_Voedingen` has one fixed cable per klasse — `400V_3F_zonder_N` is `4G2,5`
+regardless of load. `4G4` and `4G6` do not exist in the config at all.
+
+The pipeline already parses kW/A/V (`_parse_electrical_spec`) and writes them
+into `bekabeling naar`, so the data is available; there is simply no sizing
+table.
+
+**Ask Rick:** is there a current-to-cross-section table we should encode? This
+also bears on Conflict A (transportpomp `4g1,5` vs `4g2,5` — possibly both
+correct at different loads).
+
+### Q19 — Multi-panel output (relates to Q2)
+
+1363's manual splits into four panels: RK-ALGMN, RK161, RK861, and `NEXT`
+(the bus-koppeling panel). The pipeline was run once with `--rk RK1` and
+produced a single list of 86 rows against 160 manual wires.
+
+Per the evaluation convention (Section 8) the **page split does not matter** —
+what matters is the set of wires. But note:
+- the `NEXT` panel's 16 wires are not derivable from I/O at all (Q15)
+- `RK861`'s manual includes a `Signaal gevers subkast externe koppelen op
+  RK1.3` section, i.e. a *fifth* panel referenced from within one panel's list
+
+Second observation for **Q2** (sheet-to-panel merge, first seen at Tilburg):
+one input can legitimately produce several panels' lists.
+
+---
+
+## Section 11 — Consolidated list of open questions for Rick
+
+Ordered by wires unblocked. Items marked ✱ are new or sharpened as of
+2026-07-31; **✦ as of 2026-08-18 (project 7222)**.
+
+**Send items 17 and 18 first.** They are worth ~270 wires between them and both
+answer in a sentence. The rest are structural and better raised once he replies.
+
+| # | Question | Wires | Project |
+|---|---|---|---|
+| 1 ✱ | Is fire class **per-cable** rather than per-project? (Q17) | 10+ | 1363, 2195-06 |
+| 2 | DRAK × B2CA column: are the DRAK GY cables our CCA entry with the fire class swapped? (Q5.1) | 43 | 2195-06 |
+| 3 | Do device meldingen bundle into one multi-core cable, and what sets the core count? (Q7) | ~15 | 2195-06 |
+| 4 | B2CA passive temp sensor: `1x2x0,8` or `1x4x0,8` for bus sensors? (Q5.2, R2) | 22 | 2195-06 |
+| 5 ✱ | `BEDRIJF_STORING` / `VRIJGAVE_STORING`: STUURSTR HHJZ 5X1 or ST.STR HCHJZ 5X1? (Q14) | 20 | 1363 |
+| 6 ✱ | Smoorklep/omschakelafsluiter: 7X1 or 10X1? (Q16) | 15 | 1363 |
+| 7 ✱ | RK-onderling cable: CS34ZB or CS34ZC? Should the bus-koppeling panel be generated? (Q15) | 16 | 1363, 7268 |
+| 8 ✱ | Feed cross-section vs load — is there a sizing table? (Q18) | 10 | 1363 |
+| 9 ✱ | Energy Valve: B2CA equivalent, and which Modbus cable? (R1) | ~8 | 7268 |
+| 10 ✱ | Waterpomp "4x2" — full cable string please (R3) | ? | — |
+| 11 | `DRAKSIG KAB` vs `RAK SIGN KAB` — correct product name? (Q5.3) | 10 | 2195-06 |
+| 12 | `DRAK SIG B2CA GY 4X2X0,8 HA500` — no entry in either column (Q5.4) | 8 | 2195-06 |
+| 13 | Brandklep + derden → full signal cable: can this ship? (Rule 1) | — | 7268, 2195-06 |
+| 14 | Tracing panel assignment (Q12) | — | Fonkel, 2195-06 |
+| 15 | Pump feed core count `3G2,5` vs `4G2,5` (Q13) | 2 | 2195-06 |
+| 16 | `Totaal ws = 0` — confirm as convention (Q1) | 0 | four projects |
+| 17 ✦ | **Field temperature sensors.** The dictionary gives aanvoer/retour/intrede/uittrede opnemers `1x2x0,8`, and the 2026-08-18 reissue moved drukopnemers to `1x4x0,8` but left the temperature rows. 7222's manual uses `1x4x0,8` for both (131 rows). Missed in the update, or a real difference? | **~190** | 7222 |
+| 18 ✦ | **`Levering CWD/W` / `CWD/E` scope.** 85 manual rows are `Kabel levering derde totaan RK` against 2 emitted. But `Dakafvoerkap` carries CWD/W and **does** get two Erco cables, so the marker alone cannot mean derden. What distinguishes them? (Rule 1 territory) | **~83** | 7222 |
+| 19 ✦ | **Mixed family inside one panel.** RK1 uses DRAK for the plant but JOBA in the UPS rooms, the meldkamer klimaatplafond zones, and 26 of 61 brandkleppen — same function, split by location. No project-level switch can produce this. (sharpens Q17/Q5) | 57 | 7222 |
+| 20 ✦ | **Open/dicht core count.** `+ 2 eindcontacten` → `8X0,8` (×48), `Luchtklepservo` → `6X0,8` (×12), `Dakafvoerkap` → `4X0,8` (×2). Does it track feedback contacts? Note the 67 *modulating* regelafsluiters also take `4X0,8`. | 58 rows | 7222 |
+| 21 ✦ | **`SMOORAFSLUITER`.** The reissued dictionary says `7g2,5`; Tilburg's validated manual says `7G1,5`, which is what `2_Kabelkeuze` holds. Which stands? *(deliberately left unchanged)* | — | Tilburg |
+| 22 ✦ | **`3_Voedingen` `TRACING`.** CCA cell `5G2,5`, B2CA cell `3G2,5`. Dictionary and 7222 both say `5G2,5` — is the B2CA cell wrong? | ~6 | 7222 |
+| 23 ✦ | **Multi-panel doorlussen.** When a cable loops from RK03 to RK02, does it appear on both panel lists or one? (Q19) | — | 7222, 1363 |
+| 24 ✦ | **Naregelingen scope.** Is the naregelingen sheet in scope for the pipeline at all? ~700 of 7222's 1443 input rows. (Q3) | ~700 rows | 7222, 7268 |
+| 25 ✦ | `Leeswaarde` vs `Verzendwaarde` — read/send point counts (Ketels 24/24). Should `SOFT` be the sum? | — | 7222 |
+| 26 ✦ | Six `Detector (5m kabel, 230VAC, d150mm, h65mm)` rows — what do they detect? | 6 rows | 7222 |
+
+---
+
+## Section 12 — Score history (honest record)
+
+| Project | Layout | Family | Score | Notes |
+|---|---|---|---|---|
+| Duitslandlaan | Kuijpers | B2CA/JOBA | 18/18 | locked regression |
+| Boerhaave | Coneco | CCA | 15/15 | locked regression |
+| Fonkel | Kuijpers | B2CA/JOBA | 18/18 | locked; fixture updated 2026-07-30 (tracing feed) |
+| Tilburg (7273) | Coneco | CCA | ~55–65% | blind, not locked |
+| 7268 | Append1 | CCA | 48% | blind; was 37% before the feed fix |
+| ZRD Vlissingen | client7 | — | 17% | blind; blocked by Rule 1 |
+| 2195-06 | Priva | B2CA | 20% | blind; 2% on CCA, 11% on B2CA, 20% after METING_BUS |
+| **1363** | **Kuijpers** | **B2CA/JOBA** | **45%** | **blind; 13% on CCA. Score predates the STUURSTR/ST.STR equivalence — re-score** |
+| 7267 | Apparatuurlijst | B2CA/JOBA | 71% | blind; hard ceiling 23/24 (Q21) |
+| **7222** | **client8** | **B2CA/DRAK** | **33.4% exact / 45.4% spec** | **blind 22.6% (wrong family). First B2CA/DRAK project. 793 wires, 5 panels** |
+
+2195-06 forecasts if the DRAK×B2CA column is confirmed: 38% (token swap on GY
+cables) or 47% (also tolerating the sensor suffix). Both are forecasts, not
+measurements.
+
+---
+
+---
+
+## Section 0d — What changed on 2026-08-18 (project 7222 + reissued dictionary)
+
+Project 7222: client8 layout, **B2CA/DRAK** — the first project ever run on that
+family combination. 793 manual wires across five panels (RK1 349, RK02 166,
+RK03 155, RK04 55, RK05 55) plus a Naregelingen sheet. Manual dated 6-2-2026.
+
+Blind 22.6% → **33.4% exact / 45.4% on conductor specs** after four merged fixes.
+Merge gate 3/3 green.
+
+### Shipped
+
+| Change | Bucket | Effect |
+|---|---|---|
+| `procescode` added to `classify_row`'s match text | BUG | 28 rows classified that previously were not; 11 spec matches |
+| `DO` branch in the I/O fallback → `KLEP_OD_ZONDER_TERUGMELDING` | BUG | 2 wires; closes a whole-path blind spot |
+| `servomotor` synonym removed | CONFIG | prevented a 13-row regression on 2195-06 |
+| Pump signal rule (`POMP_2_SIGNALEN` / `POMP_3_SIGNALEN`) | CONFIG+BUG | 19 wires; `POMP` had no signal rule at all |
+| Reissued CCA dictionary: `1,5` → `2,5` | CONFIG | 12 cells; closes Conflicts A, E, H |
+| `header_map_client8.xlsx` | CONFIG | new layout supported |
+
+### BUG — `classify_row` was blind to `procescode`
+
+The client8 layout puts the **device name in the tag column** and a part number
+in `Omschrijving`:
+
+| `Ref. / Procescode` | `Omschrijving` |
+|---|---|
+| `Dakafvoerkap (droog)` | `Servomotor Open/Dicht` |
+| `Buitenluchtklep` | `GCA126.1E Damper actuator` |
+| `Vloertemperatuur` | `Sensor Link cable 10 m with flying leads` |
+| `Max. thermostaat` | `RAK-TW.1000HB` |
+
+The match text was `omschrijving + type + opmerking`, so the one word
+identifying the device was invisible. Fixed by adding `norm.procescode`.
+
+Verified with a new `classify_diff.py` before merging:
+
+```
+duitslandlaan  47 rows -> NO CHANGE
+boerhaave      31 rows -> NO CHANGE
+fonkel         45 rows -> NO CHANGE
+7222          938 rows -> 28 CHANGED  (13 None->KLEP_OD, 12 None->METING_ACTIEF,
+                                       3 None->METING_PASSIEF)
+```
+
+Strictly additive — **no row that already classified was reclassified on any
+project**. The 13 `KLEP_OD` rows are the real gain: DO-only rows, and `DO` was
+not in the fallback chain, so they previously emitted nothing.
+
+### BUG — `DO` was invisible to the entire signal path
+
+A device whose only signal is a digital **output** selected no function type and
+no cable. `classify.py`'s fallback went `AI → DI → AO`, skipping `DO`; `_ok()`
+in `rules.py` gated only on `AI`/`DI`/`AO`.
+
+Evidence: 7222 r144/r145 `Dakafvoerkap (droog)/(nat)`, `Voeding=230`,
+`Digital uit=1`. Manual rows 139–142 give each a feed **plus** a `GY 4X0,8`
+open/dicht cable; the pipeline emitted only the feed.
+
+Fixed with a `DO` branch mapping to a new `KLEP_OD_ZONDER_TERUGMELDING` type
+(`4x0,8`). `KLEP_OD` could not be reused — its comment reads *"open/close +
+feedback(s)"* and its value is `8X0,8`, the two-eindcontacten variant.
+
+**Failed intermediate attempt, recorded because it cost three runs:** widening
+`_ok()` to accept `DO` for `MELDING`/`VRIJGAVE`/`BEDRIJF_STORING` made every
+DO-only row select `BEDRIJF_STORING` (`6X0,8`) and masked the new type.
+Reverted. `_ok()` deliberately does **not** accept DO.
+
+**Watch item.** Section 0c records that 7267's `Storing urgent`/`Storing niet
+urgent` (DO=1, no DI) correctly get no cable, while 2195-06's `Besturing GBS`
+rows (also DO=1) *are* wired. The new branch only fires when the dictionary is
+silent, so neither should be affected — but **7267 and 2195-06 are not
+fixtures**, so the gate cannot confirm it. Worth a manual check.
+
+### CONFIG — `servomotor` synonym removed
+
+`servomotor → KLEP_STURING_MELDING (70)` was intercepting rows it does not
+describe. It names the **actuator**, never the device:
+
+| Project | String | What actually decides the cable |
+|---|---|---|
+| 7222 | `Dakafvoerkap (droog)` / `Servomotor Open/Dicht` | it is a dakafvoerkap |
+| 7222 | `ChangeOver6 Servomotor voor NovoCon S` ×14 | prio 70 beat `temperatuur` (65) |
+| 7222 | `NovoCon S, Digitale Servomotor` ×14 | bus device, correct BMS cable |
+| 2195-06 | `Brandklepservomotor levring derden` (in `opmerking`) | it is a brandklep |
+| 7268 | `E-mechanische servomotor` ×6 | Energy Valve accessory |
+
+On 2195-06 the pattern **ties** with `brandklep` at priority 70 and wins on
+length (10 > 9), flipping 13 rows on a project with no fixture.
+
+**New general rule.** Component and attribute nouns — `servomotor`,
+`hulpschakelaar`, `aansluitset`, `base`, `module` — must not become device
+classes. Same failure as the `DERDEN` primary-hijack fixed in v3, reached from a
+different direction. Add future candidates of this shape to the batch, not the
+dictionary.
+
+Removing it cost ~30 rows their (wrong) cable; those now flag
+`NO CABLE DERIVED` and need review.
+
+### CONFIG + BUG — pump signal rule
+
+`POMP` classified correctly but was **inert**: absent from `sig_priority`, so it
+could never select a signal cable. Everything a pump emitted came from its
+secondaries, and the symptom differed by project:
+
+- **7222** — `Storing` gives `DI=1`, so `VRIJGAVE` passed `_ok()`, was remapped
+  to `MELDING`, and emitted `GY 2X0,8`. Wrong cable, 40 rows.
+- **2195-06** — no DI/AO, so nothing passed: `NO CABLE DERIVED` on all five
+  pumps.
+
+**Rick, 2026-08-18:** a pump's signal cable follows the **number of signals**,
+not the pump type.
+
+| Signals on the row | Cable |
+|---|---|
+| 2 (vrijgave/storing) | `1x4x0,8` |
+| 3 (vrijgave/storing/sturing) | `3x2x0,8` |
+
+Confirmed by the reissued dictionary (nine two-signal pump rows, all
+`1x4x0,8`) and by 7222's manual (`Circulatiepomp vrijgave/storing` → `1X4X0,8`
+×8; `Transportpomp vrijgave/storing/sturing` → `3X2X0,8` ×32).
+
+Implemented as two functietypes, counted from the I/O columns (`DI`/`DO`/`AO`
+non-zero) so it does not depend on how the description is worded, plus both
+added to `sig_priority` above `VRIJGAVE`.
+
+**Deliberately pump-specific.** The same dictionary gives a three-signal
+`Ketel vrijgave/storing, sturing 0-10V` `1x4x0,8` and a two-signal
+`Ventilator Sturing/Storing` `2x2x0,8`. **Do not generalise the count rule.**
+
+Config values are the dictionary's bare specs, identical in all four family
+columns — the dictionary is family-agnostic and no verified product string
+exists. Consequence: these rows emit `1x4x0,8` where neighbours emit full
+product strings, so they match on spec but not on exact string.
+
+**Open sub-question:** 2195-06's five pumps carry no I/O at all, so the count is
+0 and they will still emit nothing. If its manual gives them a cable, the count
+may need to come from the description instead.
+
+### CONFIG — reissued CCA dictionary (Rick, 2026-08-18)
+
+Every `1,5` cross-section moved to `2,5`: `3g1,5→3g2,5` (7 device types),
+`4g1,5→4g2,5` (5), `5g1,5→5g2,5` (3), `7g1,5→7g2,5` (4). Separately, 27 signal
+rows moved `2x2x0,8 → 1x4x0,8`, including all nine two-signal pump rows and all
+five drukopnemer variants.
+
+Applied to `2_Kabelkeuze`: `BRANDSCHAKELAAR_KETELHUIS` and
+`WERKSCHAKELAAR_VOEDING` → `5G2,5`, `WARMTEWIEL_VOEDING` → `3G2,5` (12 cells),
+plus a stale `3g1,5` in the `KETEL_VOEDING` comment. `3_Voedingen` needed **no
+change**.
+
+`SMOORAFSLUITER` deliberately left at `7G1,5` — that value comes from Tilburg's
+**validated manual**, not from the standard. See Section 11 item 21.
+
+Closes Conflicts **A**, **E** and **H**.
+
+### CONFIG — `header_map_client8.xlsx`
+
+17 columns; five rows beyond `DEFAULT_HEADER_MAP`:
+
+| client_header | canonical_field | note |
+|---|---|---|
+| `Ref. / Procescode` | `procescode` | device tags, not numeric codes — `_prefix` returns 0, so prefix ordering is inert and row order falls back to input order |
+| `Fabrikaat` | `fabricaat` | spelling variant; kept in the map, not `_HEADER_ALIASES`, for zero blast radius |
+| `Voeding` | `voltage` | bare, not `Voeding (V)` |
+| `Digital uit` | `DO` | **typo in the client sheet** — without this row DO reads 0 sheet-wide with no flag |
+| `Leeswaarde` | `SOFT` | provisional — see Section 11 item 25 |
+
+`AC / DC` and `Verzendwaarde` deliberately unmapped.
+
+### NOT FIXED — `kabel_B2CA_DRAK` `METING_PASSIEF` (largest open item)
+
+7222 is the first project to exercise the B2CA/DRAK column. After the family fix
+the pipeline picks the **right rows** and writes the **wrong string**:
+
+| | emitted | manual |
+|---|---|---|
+| `METING_PASSIEF` | `DRAK SIGK B2CA 1X2X0,8 2501 MT` ×199 | `DRAK SIGK 1X4X0,8 B2CA HA500` ×220 |
+
+`1X2X0,8` (one pair) vs `1X4X0,8` (one quad) is a real conductor difference.
+**~190 wires from one cell** — more than everything merged in this session
+combined. Blocked on Section 11 item 17.
+
+### DATA — fourth silent-drop mechanism: duplicate columns
+
+7222's raw input has **26 columns in three repeating blocks** (`Analoog in`,
+`Digitaal uit`, `Busprotocol`, `Leeswaarde`, `Verzendwaarde` each 2–3 times).
+`parse_excel` uses `cols.setdefault`, so **only the first occurrence of each
+field is read** and the rest are discarded with no flag. Extends Q23 from three
+mechanisms to four.
+
+The blocks were merged down to 17 columns **in Excel** to get the run through.
+That breaks the blind-run contract — the score is not reproducible from the file
+the client sent, and the next project from this client arrives 26 columns wide
+again.
+
+**Proper fix:** collect every column index per field in `ingest`, sum the
+integer I/O fields, first-non-empty for the strings. That also resolves
+`Verzendwaarde`, currently dropped entirely.
+
+### DATA — silent drops accounted
+
+1442 data rows → ~970 expected in the normalized table: 175 blank
+`Omschrijving`, 297 bare rows treated as group headers. The group-header set
+includes preamble text (`Dit betreft de levering van een nieuwe regelkast`,
+`- Technische ruimte 4e verdieping`), which can become section names.
+**Reinforces Q23's `SKIPPED` flag as the highest-value low-risk item
+outstanding.**
+
+### DATA — mixed numeric typing; `Vermogen` units
+
+`Digitaal in` arrives as `int`, the other I/O columns and `Voeding` as `str`
+(PDF-extraction artefact, same family as Q24). Harmless — `_num` parses both —
+but `voltage` arrives as text, so any arithmetic needs `_fnum`.
+
+`Vermogen = 220` on 400 V transportpompen is almost certainly **watts**. It
+lands verbatim in `bekabeling naar` and would corrupt Q18's sizing table.
+
+### ACCEPT — scope
+
+The input is a **1443-row building-wide bill of materials**, not a single-panel
+functielijst (previous maximum 160 wires). ~108 UNKNOWN flags remain, dominated
+by **Priva Blue ID panel hardware** and **naregelingen** (Comforte CX, Roombus,
+NovoCon, Touchpoint One, `Schetsplaat` ×15). A `PANEL_INTERN` synonym block for
+the Priva hardware shipped this session — 160 `PANEL-INTERNAL` flags, ~500 fewer
+phantom rows.
+
+### New — batched, need a second observation
+
+**Open/dicht core count tracks feedback contacts?** 7222 splits 58 open/dicht
+rows three ways: `+ 2 eindcontacten` → `8X0,8` (×48), `Luchtklepservo` →
+`6X0,8` (×12), `Dakafvoerkap` → `4X0,8` (×2). Two cores per signal fits — **but**
+the 67 *modulating* `24V/0-10V` regelafsluiters also take `4X0,8`, so core count
+is not a simple function of signal count across the whole population. The
+dictionary gives every valve `4x0,8` and does not model feedback contacts.
+Section 11 item 20.
+
+**`Ruimtetemperatuuropnemer` is a distinct type.** 7222 gives it
+`DRAKSIG KAB B2CA GY 1X2X0.8 MT` consistently, while `Ruimtevochtopnemer` and
+`RuimteCO2opnemer` **in the same rooms** get `1X4X0,8`. This confirms Rick's
+July answer (R2) is specific to room **temperature** — not room sensors
+generally, and not passive sensors generally. 11 wires, one observation. Also a
+second observation for the `DRAKSIG KAB` vs `RAK SIGN KAB` question (Q5.3).
+
+**Bundled vs split multi-signal rows — now contradicted.** 7267 (drycooler) and
+2195-06 (radiator) split a DI+AO row into two cables; **7222's transportpomp
+bundles three signals into one** `3X2X0,8`. Three projects say split, one says
+bundle, and the standard says one cable per row throughout. The pipeline
+currently does **neither** — the generic tail selects exactly one `ftype` and
+silently discards the other signals; `E_KETEL` is the only branch that splits,
+hard-coded from Duitslandlaan. Related to Conflict C.
+
+**Mixed family inside one panel.** RK1 uses DRAK for the plant but JOBA for the
+UPS rooms, the three meldkamer klimaatplafond zones, and 26 of 61 brandklep
+standmeldingen — same function, split by location. 57 wires (`2X1`, `5X1`,
+`7X1`, `12X1`) that no project-level `signaalfamilie` switch can produce.
+**Second observation for Q17/Q5**, and it escalates the question from "fire
+class per cable" to "**family** per cable, possibly driven by location".
+
+### Confirmed cable equivalences (Rick) — move to `equivalents.csv`
+
+**Equivalent:**
+- `DRAK SIGK AFG B2CA 3X2X0,8 MT` ≡ `DRAK KAB AFG B2CA 3X2X0,8 MT`
+- `RAK SIGN KAB B2CA 4X0,8 HA500` ≡ `DRAK B2CA GY 4X0,8 MT`
+- `JOBA ST.STR B2CA HCHJZ 5X1 MT` ≡ `JOBA STUURSTR HHJZ 5X1 MT` *(closes Q14's
+  cable question)*
+
+**NOT equivalent:**
+- `1x4x0,8` vs `2x2x0,8` — one screened quad vs two screened pairs
+- `1x4x0,8` vs `4x0,8` — screened vs unscreened
+
+Three equivalences surfaced in one session, each **after** a score had already
+been computed without it. They belong in a file the scorer reads, not in
+conversation. Folds into the `score.py` item.
+
+### Tooling added
+
+- **`classify_diff.py`** — loads `1_Synoniemen`, classifies every row of every
+  project, diffs primary functietype before/after an edit. **Required before any
+  `1_Synoniemen` or match-text change**, because the merge gate covers only
+  three projects and is blind to 2195-06, 1363, 7267, 7268 and 7222.
+- **`probe4.py`** — prints `classify_row` output for a synthetic row plus
+  `classify.__file__` and the live source of the fallback chain. **Run after any
+  classify edit** — see the process note below.
+- Scoring is now a scripted multiset diff with a spec-only mode that collapses
+  wording variants. `score.py` + a saved `manual.csv` per project is the
+  remaining half of that item.
+
+### Process notes
+
+**Counterfactual scores must state their assumptions.** A mid-session estimate
+of 66.7% after the family fix was derived by substituting cable strings read off
+the **manual**, not from `2_Kabelkeuze`. The actual re-run scored 33.0%; the
+entire gap was the `kabel_B2CA_DRAK` column. The estimate answered "if family
+**and** config are correct" while being presented as "if family is correct".
+
+**An edit in the editor is not an edit on disk.** VS Code's dirty-write guard
+makes autosave a silent no-op once the on-disk mtime diverges from what the
+editor loaded. Two `classify.py` changes sat unsaved for hours while three
+pipeline runs were scored against code that did not contain them — including the
+`procescode` change, which `classify_diff.py` had verified independently and
+which was therefore briefly recorded as merged when it was not. **Verify with
+`probe4.py` or `git status` before scoring a run.** Prefer scripted patches over
+hand edits.
+
+**Propagate from the right master.** A failed gate (`boerhaave` 12/14,
+`duitslandlaan` 16/17) was caused by running `propagate_config.py` while the
+edited config was still under a different filename — the copies were rebuilt
+from the unmodified master. `git stash push config/` + re-run isolates
+config-caused failures from code-caused ones in one step.
+
+**`HANDOVER.md` section 3 is wrong** about the `2_Kabelkeuze` column order. The
+real order is `functietype, kabel_B2CA_DRAK, kabel_CCA_DRAK, kabel_B2CA_JOBA,
+kabel_CCA_JOBA, opmerking`.
+
+## Section 0c — What changed on 2026-08-01
+
+### Shipped
+
+| Change | Effect |
+|---|---|
+| Four-column `2_Kabelkeuze` + `signaalfamilie` selector | 2195-06: 11% → **47%** |
+| `METING_BUS` for NW-sens bus sensors | 2195-06: 96 → 106 cables |
+| `_header_protocol` — protocol named in a column header | 7267: 58% → **71%** |
+| `PANEL_INTERN` — reset/automaat/netwachter emit nothing | −3 wires 7267, −5 wires 2195-06 |
+| Section banners + `bekabeling naar` removed from output | presentation only |
+| `DEFAULT_HEADER_MAP` refactor + import assertion | fixed `curfrent_a` typo |
+
+### Closed
+
+**Q10 — panel-internal meldingen. ENCODED.** Second observation on 7267
+(`Resetknop`, `Automaat 230V`, `Automaat 24V` — no cable in the manual) alongside
+2195-06 (`RS-01`, `IA-01`, `NW-01`). Verified first that no locked project
+contains these device names and no existing synonym collides. Now a
+`PANEL_INTERN` functietype with a dedicated dispatch branch that flags and
+returns. `overspanningsbeveiliging` deliberately excluded — 2195-06 wires the
+*verdeelkast* variant and not the *regelkast* one.
+
+**Section 5 hygiene: CS34ZB vs CS34ZC.** Rick: treat as equivalent for scoring.
+Config unchanged.
+
+### New — project 7267 (Apparatuurlijst, 24 wires)
+
+**Q20 — supply spec on a separate row from the device it feeds.**
+7267 has a row with `Onderdeel = Energiemeter`, `Specificatie = voeding 230V`, no
+procescode and no I/O. It meets the group-header condition, is consumed as a
+section name, and the voltage is discarded. The energiemeter row below it has a
+procescode but its Specificatie says `Kamstrup multical 603` — no voltage.
+
+Costs 1 wire. A carry-forward rule (hold a voltage from a consumed header row,
+apply to the next device row without one, consume once) is drafted but **one
+observation**, and it would be the only place the pipeline infers a relationship
+between adjacent rows. Fix the input instead until a second project shows the same
+convention.
+
+**Q21 — a cable whose specification is not in the input at all.**
+7267's manual gives the circulatiepomp `DRAK HULT CCA 4X2,5 MT, max 2,2kW`. The
+functielijst has no voltage, no kW and no A on that row, and the `Zekering`/`kW`/`A`
+columns are empty sheet-wide. Rick supplied it from outside the document.
+
+**This is a different category from every other miss.** It sets a hard ceiling of
+23/24 on blind accuracy for this project. Worth checking whether other manuals
+contain cables with no derivable specification.
+
+**Q22 — protocol location varies across five structural forms.**
+Reviewed all eleven header layouts seen so far:
+
+| Where the protocol lives | Layouts |
+|---|---|
+| A dedicated `Protocol` column | Coneco ×3 |
+| A `Data` column | Kuijpers (Fonkel) |
+| The `Databus` column | Kuijpers (1363) — same headers, different content |
+| Inside an I/O count column | ZRD |
+| A column *header* | 7267 (`modbus RTU`), Append1 (`MODbus-punten`) |
+| Free text | Priva, 1363 remarks |
+
+**Mechanism A (column header) is shipped.** Two remain:
+
+- **Mechanism B — free-text extractor**, parallel to `_parse_electrical_spec`,
+  reading `opmerking` then `omschrijving` when the column is empty. Would likely
+  recover 2195-06's missing BMS row. Not built.
+- **Mechanism C — the Kuijpers swap.** `bus_protocol` holds a point count and
+  `bus_naam` holds the protocol on 1363, the reverse of Fonkel. Same client, same
+  headers, inconsistent filling. Fix: `bus_protocol = bus_naam` when the former
+  does not look like a protocol. Currently harmless — `_bus_row` falls through to
+  the Modbus RTU default, which is right by luck. Would break on a BACnet/IP
+  project. Not built.
+
+**Q23 — three silent-drop mechanisms.**
+Rows disappear with no flag in three places, each found this week by counting rows
+by hand:
+
+1. **M&R filter** — 45 of 130 named rows on 1363, of which ~14 were real RK861
+   devices whose author never filled the column (~22 wires)
+2. **Group-header heuristic** — 5 rows on 7267, of which 4 are correctly section
+   markers and 1 carries a voltage (Q20)
+3. **`emit()` early returns** — the `REGELKAST` case cost 6 pump feeds on 2195-06
+   before it was fixed
+
+A `SKIPPED (reason): <name> (source_ref)` line in `flags.txt` would have made all
+three visible on the first run. Pure diagnostics, cannot change a cable, cannot
+break the gate. **Not built — highest-value low-risk item outstanding.**
+
+**Q24 — decimal commas lost in PDF→Excel extraction (input quality).**
+1363's `IO_parsed.xlsx` holds `3060`/`5620` where the source PDF shows
+`30,60`/`56,20`. Five of ten rows with power data affected; the five correct ones
+arrive as floats, the wrong ones as ints. **Not a pipeline bug** — `_fnum` parses
+what it is given.
+
+Harmless today: `power_kw` and `current_a` do not affect cable choice. Would
+corrupt Q18's current→cross-section lookup if that is ever built. Worth
+spot-checking numeric columns against the source after any PDF extraction.
+
+**Q25 — `feed_cable` still reads two columns.**
+`signal_cable` was extended to four (fire class × brand); `feed_cable` still does
+`row["kabel_B2CA"] if family == "B2CA" else row["kabel_CCA"]`, because
+`3_Voedingen` only has two columns.
+
+That matters because **three projects write feeds as CCA inside a B2CA/JOBA list**
+— 7267, 1363, 2195-06. Same evidence as Q17. If Rick confirms fire class is
+per-cable, `3_Voedingen` needs the same treatment.
+
+### Strengthened
+
+**Q17 — fire class is per-cable, not per-project. THIRD OBSERVATION.**
+7267's manual: `DRAK HULT CCA 3G2,5 HA500` and `DRAK HULT CCA 4X2,5 MT`, in a list
+that is otherwise entirely JOBA/B2CA. Same pattern as 1363 and 2195-06. This is
+now the best-supported open finding and it reframes Q5: the problem may not be a
+missing column but a wrong model.
+
+**Rick's `X ≡ G` equivalence — confirmed in his own document.** 7267's manual
+writes `4X2,5` where the config writes `4G2,5`.
+
+**Sturing + storing on one row → two cables. SECOND OBSERVATION.**
+7267's drycoolers: `3711DK01` appears twice in the manual —
+`Dry-cooler storing` (`JOBA STUURSTR HHOZ 2X1`, unscreened) and
+`Dry-cooler sturing` (`JOBA ST.STR B2CA HCHOZ 2X1`, screened). One input row,
+DI=1 and AO=1. Identical in shape to 2195-06's radiators, and a cleaner example
+because the two cables are visibly different types — exactly what Rick's screening
+rule predicts.
+
+**Rick's screening rule (2026-07-31).** Analogue signals normally take screened
+cable (`1xNx…`); digital take unscreened (`Nx…`). Holds roughly 9 times in 10.
+Stated exception: regelafsluiter and afsluiter always take `4x0,8` unscreened.
+
+**Use as a review prompt, not an assertion.** An invariant wrong 10% of the time
+gets disabled. And note `1x4x0,8` is **not** equivalent to `4x0,8` — screened
+versus unscreened, analogue versus digital.
+
+**`MELDING` requires DI, not DO.** 7267's `Storing urgent` / `Storing niet urgent`
+(DO=1, no DI) are rejected by `_ok()` and the manual gives them no cable — right
+outcome. But 2195-06's `Besturing GBS` rows (also DO=1) *are* wired in its manual,
+bundled into the pump's `4X2X0.8`. Two projects, opposite correct answers. Worth a
+question, not a change.
