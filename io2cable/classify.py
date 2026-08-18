@@ -13,7 +13,7 @@ STRUCTURAL = {"REGELKAST", "NTB", "DERDEN", "BUS_INTERFACE", "BRANDMELDING"}
 
 
 def classify_row(norm, cfg):
-    text = f"{norm.omschrijving} {norm.type} {norm.opmerking}".lower()
+    text = f"{norm.procescode} {norm.omschrijving} {norm.type} {norm.opmerking}".lower()
     flags = []
 
     # collect matches as (prio, len, type); primary = best
@@ -38,6 +38,8 @@ def classify_row(norm, cfg):
             hits.append("METING_ACTIEF")
         elif norm.DI == 1:
             hits.append("MELDING")
+        elif norm.DO:
+            hits.append("KLEP_OD_ZONDER_TERUGMELDING")
         elif norm.AO:
             hits.append("STURING_0_10V")
         else:

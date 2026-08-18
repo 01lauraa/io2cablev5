@@ -189,12 +189,28 @@ class Engine:
             if "230" in spec:
                 t = ["SMOORAFSLUITER_KRACHT" if x == "SMOORAFSLUITER" else x for x in t]
                 prim = t[0]
-        sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING", "KLEP_OD", "BRANDKLEP", "MELDINGEN_GROOT",
+        # KLEP_OD_ZONDER_TERUGMELDING sits directly after KLEP_OD: same device
+        # class, fewer conductors. KLEP_OD is the WITH-feedback variant
+        # ("open/close + feedback(s)", 8X0,8 = 2 eindcontacten); the no-feedback
+        # variant is 4X0,8. Evidence: 7222 manual 139-142 Dakafvoerkap
+        # (droog/nat) open/dicht -> DRAK B2CA GY 4X0,8 MT, against
+        # 'Regelafsluiter open/dicht + 2 eindcontacten' -> 8X0,8 (x48).
+        # NB the 6X0,8 middle case (Luchtklepservo, x8) is NOT modelled -- the
+        # core count appears to track the number of feedback contacts, but that
+        # is one project's evidence and is an open ASK.
+        sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING",
+                        "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "REGELAFSLUITER_0_10V", "METING_ACTIEF",
                         "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
                         "MELDING"]
         sig_candidates = [prim] + [x for x in t[1:]]
         def _ok(f):
+            # Each signal type requires the I/O that physically carries it.
+            # DO is deliberately NOT accepted here: a digital OUTPUT is not a
+            # melding and not a 0-10V sturing. DO-only devices are typed by the
+            # I/O-signature fallback in classify.py (-> KLEP_OD_ZONDER_TERUGMELDING).
+            # Widening these guards to DO made every DO-only row select
+            # BEDRIJF_STORING (6X0,8) -- wrong cable, and it masked the new type.
             if f.startswith("METING") and f != "METING_BUS" and not n.AI: return False
             if f in ("MELDING", "VRIJGAVE", "BEDRIJF_STORING") and not n.DI: return False
             if f == "STURING_0_10V" and not n.AO: return False

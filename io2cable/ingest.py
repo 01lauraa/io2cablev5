@@ -22,7 +22,7 @@ from .schema import NormRow, NORM_COLUMNS
 _HEADER_ALIASES = {
     "omschrijving": ["beschrijving", "onderdeel"],
     "procescode":   ["proces code", "ref"],
-    "fabricaat":    [],
+    "fabricaat":    ["Fabrikaat"],
     "type":         [],
     "aantal":       [],
     "AI":           ["analoge ingang", "analoog in", "ai"],
