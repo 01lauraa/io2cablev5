@@ -18,6 +18,18 @@ from .schema import CableRow
 from .classify import STRUCTURAL
 
 
+# How each bus type is named in the cable list. The key comes from _bus_row's
+# protocol test; without this the label always said 'MODbus koppeling', which
+# contradicted the cable string on M-bus and BACnet rows (7277 r151-153).
+_BUS_LABEL = {
+    "MODBUS_RTU":     "MODbus",
+    "MODBUS_IP_VELD": "MODbus",
+    "BACNET_IP":      "BACnet",
+    "MBUS":           "M-bus",
+    "TOUCHPANEL_IP":  "data",
+    "RK_ONDERLING":   "data",
+}
+
 def _prefix(code):
     m = re.match(r"(\d{2,4})", code or "")
     return int(m.group(1)) if m else 0  # rows without a procescode (WP, tracing) lead
@@ -69,8 +81,8 @@ class Engine:
             self.bus_seen[chain] = self.bus_seen.get(chain, 0) + 1
             if self.bus_seen[chain] > 1:
                 naar = "doorlussen"
-        return CableRow("", f"{label} MODbus koppeling", "", n.procescode, cab, naar,
-                        source_ref=n.source_ref)
+        return CableRow("", f"{label} {_BUS_LABEL.get(key, 'MODbus')} koppeling", "",
+                        n.procescode, cab, naar, source_ref=n.source_ref)
 
     def _signal_row(self, cr, ftype, label, naar=None):
         cab = self.cfg.signal_cable(ftype)
@@ -199,7 +211,7 @@ class Engine:
         # core count appears to track the number of feedback contacts, but that
         # is one project's evidence and is an open ASK.
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING",
-                        "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDVENTILATIESCHAKELING", "BRANDKLEP", "MELDINGEN_GROOT",
+                        "REGELAFSLUITER_OD", "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDVENTILATIESCHAKELING", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "POMP_3_SIGNALEN", "POMP_2_SIGNALEN",
                         "OVERWERKTIMER",
                         "REGELAFSLUITER_0_10V", "METING_ACTIEF",

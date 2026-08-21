@@ -7,6 +7,204 @@ Format: `[BUCKET] change — evidence (project / row)`
 
 ---
 
+# CHANGELOG — v6 entry (paste above `## v5 — 7222`)
+
+---
+
+## v6 — 7-nieuw (muziekschool + sport) and 7277, two new layouts
+Two projects in one session. **7-nieuw** was validated against its kabellijst
+(23-1-2026, 96 wires over two panels): blind 34.4% exact / 51.0% spec →
+**42.7% / 62.5%** after five fixes. **7277** is a new client8-style layout with
+two header rows; ingested and run, no manual yet, so not scored.
+
+### CONFIG — pump signal rule confirmed on a second project
+7-nieuw's manual gives `Transportpomp bedrijf/storing/sturing` (3 signals)
+`DRAK SIGK AFG CCA 3X2X0,8 MT` and `Circulatiepomp bedrijf/storing` (2 signals)
+`DRAK SIGK CCA 1X4X0,8 2502Q MT`. Both match Rick's rule from v5 exactly.
+`3X2X0,8` scored 3 vs 3. *(7-nieuw RK2 #1-5, #22-26)*
+
+On 7277 the same rule now fires on 10 circulatiepompen (`1x4x0,8`) and 4
+warmtepompen (`3x2x0,8`) — but only after two transcription bugs were fixed
+(see DATA below), which is worth remembering: the rule looked broken when the
+input was wrong.
+
+### CONFIG — M-bus is a protocol, not a scope *(MERGED)*
+`4_Bus` had a key `MBUS_DERDEN` whose cable was
+*"Kabel levering derde, enkelzijdig aansluiten op regelkast Erco"*. `_bus_row`
+selected it purely on the protocol string, so **every** M-bus device was assumed
+third-party regardless of who supplied it.
+
+Rick 2026-08-18: an M-bus device takes `DRAK SIGK CCA 1X2X0,8 2501 MT`; M-bus is
+not Modbus. Key renamed `MBUS_DERDEN` → `MBUS`, cable changed, derden scope left
+to `derden_flag` / `DERDEN_PAT` where it belongs. *(7-nieuw, 5 M-bus rows)*
+
+**Note the config and code must land together** — `cfg.bus["MBUS"]` against a
+config still saying `MBUS_DERDEN` is a `KeyError`.
+
+**`4_Bus` has only ONE cable column**, so this CCA string is also used on B2CA
+projects. Same gap as Q25 (`feed_cable` reading two columns). No current project
+is affected; logged rather than fixed.
+
+### CONFIG + BUG — `OVERWERKTIMER` was inert *(MERGED)*
+The type existed with the right cable (`DRAK CCA GY 4X0,8 MT`) but is **not in
+`sig_priority`**, so it could never be selected: all four rows fell through to
+`MELDING` and emitted `2X0,8`. Added to `sig_priority`.
+
+Rick then changed the value to `1x4x0,8`, which **diverges from 7-nieuw's own
+manual** (#29, #60-62 = `4X0,8`). Encoded on his authority and recorded as a
+deliberate divergence. *(7-nieuw RK1 #29, RK2 #60-62)*
+
+First edit used `DRAK … GY 1X4X0,8`, mixing an unscreened product name (`GY`)
+with a screened spec (`1x`); corrected to the `SIGK … 2502Q` line, which is what
+every other `1x4x0,8` row in the manual uses.
+
+### BUG — brandschakelaar toevoer + afvoer are one cable *(MERGED)*
+Rick 2026-08-18: the two functielijst rows become ONE kabellijst row,
+`Brandventilatieschakeling`. Evidence: 7-nieuw RK2 r93+r94 → manual #58.
+
+**Implemented as a standalone pairing pass, deliberately NOT through
+`dedupe_devices`.** The two mechanisms answer different questions:
+
+- `dedupe_devices` — "is this one device described twice, or two devices with
+  similar names?" Global; its key carries group and name stem so that e.g.
+  Boerhaave's three heat pumps stay three.
+- pairing — "these two named rows are the two halves of one cable." Always
+  exactly two, always adjacent, no ambiguity.
+
+A first attempt routed it through `_device_key` plus a rename in `_merge_group`.
+That made the merge depend on `rk` and `group` values which are **identical
+across both panels** on this input, so all four rows collapsed into one; and the
+`_merge_group` rename was the only place in the codebase where a merge changes a
+device's name. Reverted. *(recorded because it cost two runs)*
+
+`_pair_brandventilatie()` now runs in `run()` before `dedupe_devices`, merges an
+adjacent `toevoer` → `afvoer` pair in that order, unions the I/O, and **flags an
+unmatched half rather than emitting it** (`UNPAIRED brandschakelaar: …`).
+
+Value set to `8X0,8` per Rick, on the existing `BRANDVENTILATIESCHAKELING` row —
+which **already existed** with all four family columns populated. An earlier
+attempt appended a duplicate row instead of editing it; the loader keeps the
+first, so the change had no effect until corrected.
+
+### CONFIG — `REGELAFSLUITER_OD` *(NEW)*
+Rick 2026-08-21: a regelafsluiter **with** open/dicht takes `8x0,8` (DRAK, both
+fire classes), `12X1` (B2CA JOBA), `10X1` (CCA JOBA). **Without** open/dicht it
+stays `REGELAFSLUITER_0_10V` at `4x0,8` / `5X1` — already correct, unchanged.
+
+`regelafsluiter open/dicht` (prio 80) repointed from `KLEP_STURING_MELDING` to
+the new type.
+
+**Deliberately not reusing `KLEP_OD`.** That type is reached by three generic
+catch-alls — `klep` (30), `afsluiter` (20), `kogelafsluiter` (40) — added during
+the 7222 session on a *priority-safety* argument, not on evidence that those
+devices are open/dicht with feedback. Changing `KLEP_OD`'s JOBA columns would
+move all three. See the new open question.
+
+### BUG — bus row label always said "MODbus" *(MERGED)*
+`_bus_row` selects a key (`MODBUS_RTU` / `MODBUS_IP_VELD` / `BACNET_IP` / `MBUS`
+/ `TOUCHPANEL_IP` / `RK_ONDERLING`) and then hardcoded the word `MODbus` in the
+label. So an M-bus watermeter read `Hoofdwatermeter MODbus koppeling` while
+carrying the M-bus cable, and BACnet devices read MODbus too. Added a
+`_BUS_LABEL` table so the suffix follows the key. Cosmetic — cannot change a
+cable — but it contradicted the cable string in the same row.
+*(7277 r151-153)*
+
+### DATA — 7-nieuw: the functielijst is a scanned PDF, transcribed by hand
+5 pages, hand-annotated, three struck-through circulatiepomp rows whose
+datapoints **still count toward the PDF's own totals**. Transcribed to xlsx;
+**all fourteen totals** (DI/DO/UI/AI/AO/FDP/software per panel) reconcile with
+the PDF's totals rows.
+
+Structural decisions recorded in the workbook's notes sheet: the single `Groep`
+column split into Groep/Subgroep/Onderdeel; device names repeated on every
+function row; struck-through rows kept with strikethrough and a `DOORGEHAALD`
+note; the handwritten `BR Controls` replacing struck-out `LEVERING DERDEN` on
+five valves recorded verbatim; a handwritten marginal `2` on two rows **not**
+interpreted.
+
+**The RK1/RK2 assignment is inferred, not in the document.** Page 1 says
+`VANUIT RK 2 Sport`, page 5 says `VANUIT RK 1 MUZIEKSCHOOL`, so each panel names
+the other. Well-supported but not stated.
+
+**`UI` (Universal Input) has no home in `NORM_COLUMNS`** and was folded into
+`AI`. 19 points on RK2.
+
+### DATA — 7277: two header rows, neither sufficient alone
+| row 14 (merged down to r20) | row 21 |
+|---|---|
+| Bedrijfmelding, Storingsmelding, Analoge ingang, Digitale uitgang, Analoge uitgang, Verzend waarde, Ontvang waarde, P[kW], I[A], U[V], Sturen, Meten, Fabricaat, Type | I/O check, Omschrijving, Proces code, B, ST, AI, I/O, AU, VW, OW |
+
+Both rows scored **7** in `parse_excel`'s header detection, and `max()` returns
+the first — so ingest picked row 14, which has no `Omschrijving`, and dropped
+every row: **`0 input rows`**. A tiebreak entry in the header map (`I/O check` →
+`regelkast_spec`, an inert field) pushed row 21 to 8 and produced 130 rows — but
+with `fabricaat`, `type`, `voltage`, `power_kw`, `current_a` and `bus_protocol`
+**all empty**, because those columns are named only on row 14.
+
+Worked around by building `normalized.csv` directly from the sheet, reading both
+header rows by fixed column index: **141 devices**, with fabricaat 89, type 99,
+bus_protocol 19, voltage 22, power_kw 17. DI went 6 → 31 (the `B`+`ST` sum) and
+DO 45 → 67.
+
+**The real fix is for `parse_excel` to combine two header rows** — take the
+candidate row's value where non-empty, fall back to the row above. Generic:
+7222 had the same shape. Not done; the merge gate has been red since a config
+accident (below), so an ingest change on a shared path is unverifiable.
+
+Other notes on this layout: the abbreviation **`I/O` means digitale UITGANG**
+(row 14 says so; confirmed by a storingsmelding lamp carrying its 1 there) —
+the most misleading label seen so far. There is **no plain digital-input
+column**; all DI arrives via `B` and `ST`. Empty cells hold the string `'-'`.
+`Bedrijfmelding` on row 14 is missing its `s`. `procescode` is filled on 1 of
+141 rows, so ordering falls back to input order — third project running.
+
+### DATA — two client typos found by their effect on the merge
+- **`Circultiepomp` ×10** (missing the `a`), sitting directly above and below
+  correctly-spelled `Circulatiepomp` rows. Broke the transcription's device
+  collapse *and* stopped the rows matching the `circulatiepomp` synonym, so ten
+  pumps were classified on their I/O signature alone. Normalised via an
+  `ALIASES` map **in our derived file only**; the source workbook is untouched.
+- **`'Warmtepomp. '`** — trailing dot, nothing after it. The collapse split on
+  `". "` and needs a function after the separator, so the bus row (carrying the
+  protocol and VW/OW) never joined its own `Vrijgave`/`Storing`/`Vermogen
+  sturing` rows: protocol on one device, I/O on another.
+
+Both fixed in the builder: trailing dots stripped before splitting, and a bare
+device row can now **start** a collapse run.
+
+### DATA — collapse rule, second iteration
+Merging on `(group, stem)` alone collapsed three separate RADA systems on
+7-nieuw into one, because each had a row called `datacomm.`. The rule is now:
+merge consecutive rows sharing a stem **until a function name repeats**, at
+which point a new device starts.
+
+### BROKEN — `propagate_config.py` destroyed per-project config values
+A helper written this week copies the master `kabelconfig.xlsx` over each
+project copy and restores only `0_Parameters`, on the handover's claim that the
+copies differ only in that tab. **They do not.** v3 recorded project-specific
+`2_Kabelkeuze` values for Boerhaave (`SMOORAFSLUITER` → `JOBA STUURSTR HHJZ 7X1`,
+`METER_VOEDING_24V` CCA → `JOBA STUURSTR HHJZ 3X1`) which were overwritten.
+
+Gate has been **1/3 since**: boerhaave 12/14 (7X1 ×0 expected 12, 3X1 ×0
+expected 3), duitslandlaan 16/17 (5X1 ×13 expected 14), fonkel 14/14.
+
+`git stash push config/` + re-run isolates config-caused failures from
+code-caused ones in one step, and confirmed the pairing change is not
+responsible.
+
+**Not yet restored.** Delete or rewrite `propagate_config.py` before it is used
+again, and write down the real per-project differences.
+
+### Scores
+| Project | Layout | Family | Score |
+|---|---|---|---|
+| 7-nieuw | scanned PDF → xlsx | CCA/DRAK | **42.7% exact / 62.5% spec** (96 wires, 2 panels) |
+| 7277 | two-row header | CCA/DRAK (assumed) | not scored — no manual |
+
+7-nieuw's remaining gaps, unchanged by this session's fixes: `8X0,8` ×19 emitted
+against **0** in the manual (the open/dicht core count), `4X0,8` 14 vs 2 (the
+manual's default digital signal cable), `6X0,8` 9 vs 0.
+
 ## v5 — 7222 (nieuwe regelkast, technische ruimte 4e verdieping), B2CA/DRAK, 5 panels
 First project on the **B2CA/DRAK** family combination and on the client8 layout.
 Manual: 793 wires over five panels (RK1 349, RK02 166, RK03 155, RK04 55,
