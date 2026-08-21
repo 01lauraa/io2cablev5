@@ -55,7 +55,7 @@ class Engine:
         n, cfg = cr.norm, self.cfg
         bp = (n.bus_protocol or "Modbus RTU").lower()
         if "m-bus" in bp:
-            key = "MBUS_DERDEN"
+            key = "MBUS"
         elif "ip" in bp and "modbus" in bp:
             key = "MODBUS_IP_VELD"
         elif "bacnet" in bp and "ip" in bp:
@@ -201,6 +201,7 @@ class Engine:
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING",
                         "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "POMP_3_SIGNALEN", "POMP_2_SIGNALEN",
+                        "OVERWERKTIMER",
                         "REGELAFSLUITER_0_10V", "METING_ACTIEF",
                         "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
                         "MELDING"]
