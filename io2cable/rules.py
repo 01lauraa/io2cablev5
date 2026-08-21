@@ -199,7 +199,7 @@ class Engine:
         # core count appears to track the number of feedback contacts, but that
         # is one project's evidence and is an open ASK.
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING",
-                        "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDKLEP", "MELDINGEN_GROOT",
+                        "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDVENTILATIESCHAKELING", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "POMP_3_SIGNALEN", "POMP_2_SIGNALEN",
                         "OVERWERKTIMER",
                         "REGELAFSLUITER_0_10V", "METING_ACTIEF",
@@ -323,11 +323,53 @@ def _apply_location_headers(classified, cfg):
     return classified
 
 
+
+def _pair_brandventilatie(classified, flags):
+    """Collapse an adjacent 'toevoer' + 'afvoer' pair into one cable row.
+
+    Rick 2026-08-18. The pair must be ADJACENT and in that order; the I/O counts
+    are unioned so a downstream signal-count rule still sees the whole device.
+    An unmatched half is flagged rather than silently emitted: a lone toevoer is
+    more likely a data problem than a real single-ended device.
+
+    Evidence: 7-nieuw RK2 r93+r94 -> manual #58 'Brandventilatieschakeling'.
+    7-nieuw RK1 r24+r25 carry the same two names with no I/O and the remark
+    'VANUIT RK 2 Sport' (the signal arrives from the other panel); its manual has
+    no brandventilatieschakeling row, so that pair is flagged, not emitted.
+    """
+    T = "BRANDVENTILATIESCHAKELING"
+    out, i = [], 0
+    while i < len(classified):
+        cr = classified[i]
+        prim = cr.functietypes[0] if cr.functietypes else ""
+        if prim != T:
+            out.append(cr); i += 1; continue
+        name = (cr.norm.omschrijving or "").lower()
+        nxt = classified[i + 1] if i + 1 < len(classified) else None
+        nxt_prim = (nxt.functietypes[0] if nxt and nxt.functietypes else "")
+        nxt_name = (nxt.norm.omschrijving or "").lower() if nxt else ""
+        if "toevoer" in name and nxt_prim == T and "afvoer" in nxt_name:
+            n, e = cr.norm, nxt.norm
+            n.AI += e.AI; n.AO += e.AO; n.DI += e.DI; n.DO += e.DO
+            if e.opmerking and e.opmerking not in n.opmerking:
+                n.opmerking = (n.opmerking + " | " + e.opmerking).strip(" |")
+            n.derden_flag = n.derden_flag or e.derden_flag
+            n.omschrijving = "Brandventilatieschakeling"
+            out.append(cr); i += 2
+        else:
+            flags.append(
+                f"UNPAIRED brandschakelaar: {cr.norm.omschrijving} - expected an "
+                f"adjacent toevoer+afvoer pair, no cable emitted "
+                f"({cr.norm.source_ref})")
+            i += 1
+    return out
+
 def run(classified, cfg):
     """Full Step 3: emit, order, number, totalize. Returns (result_dict, flags)."""
     classified = _apply_location_headers(classified, cfg)
-    classified = dedupe_devices(classified)
     eng = Engine(cfg)
+    classified = _pair_brandventilatie(classified, eng.flags)
+    classified = dedupe_devices(classified)
     voedingen, devices, onderstation_extra = [], [], []
     for idx, cr in enumerate(classified):
         eng.flags.extend(cr.flags)
