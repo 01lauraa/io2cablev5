@@ -35,7 +35,13 @@ def write_cable_list(result, cfg, path, rk_naam):
         ws.cell(rr, 3).font = Font(bold=True, color="0000FF", name="Arial", size=10)
     ws.append([])
     nr = 0
+    current_section = None
     for r in result["devices"]:
+        if r.section != current_section:
+            if current_section is not None:
+                ws.append([])
+            ws.append(["", r.section]); ws.cell(ws.max_row, 2).font = BLUE
+            current_section = r.section
         nr += 1
         flag = " [?]" if r.flags else ""
         ws.append([nr, r.onderdeel + flag, r.ws, r.procescode, r.kabel])
@@ -47,7 +53,7 @@ def write_cable_list(result, cfg, path, rk_naam):
     for col, w in zip("ABCDE", (5, 46, 5, 12, 58)):
         ws.column_dimensions[col].width = w
     ws.freeze_panes = "A2"
-    wb.save(path) 
+    wb.save(path)
 
 
 def main(argv=None):
