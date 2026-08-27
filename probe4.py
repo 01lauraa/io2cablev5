@@ -16,3 +16,17 @@ src = inspect.getsource(classify_row)
 for i, line in enumerate(src.splitlines(), 1):
     if "not hits" in line or "norm.D" in line or "norm.A" in line or "hits.append" in line:
         print(f"{i:4d}  {line}")
+
+from io2cable.config import load_config
+from io2cable.rules import Engine
+from io2cable.schema import NormRow, ClassifiedRow
+
+cfg = load_config(r'config\kabelconfig.xlsx')
+eng = Engine(cfg)
+for p in ['BACnet MS/TP client', 'BACnet /IP client',
+          'Priva Blue ID BACnet MS/TP client driver',
+          'Priva Blue ID BACnet/IP client driver',
+          'Modbus-RTU (master)', 'M-bus']:
+    n = NormRow(omschrijving='X', bus_protocol=p)
+    row = eng._bus_row(ClassifiedRow(norm=n, functietypes=['METING_BUS'], flags=[]), 'X')
+    print(f'{p:44s} -> {row.kabel}')

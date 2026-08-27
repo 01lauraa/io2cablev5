@@ -70,7 +70,9 @@ class Engine:
             key = "MBUS"
         elif "ip" in bp and "modbus" in bp:
             key = "MODBUS_IP_VELD"
-        elif "bacnet" in bp and "ip" in bp:
+        elif "bacnet" in bp and "ms/tp" in bp:
+            key = "MODBUS_RTU"          # serial BACnet rides the BMS cable
+        elif "bacnet" in bp:
             key = "BACNET_IP"
         else:
             key = "MODBUS_RTU"
@@ -211,9 +213,9 @@ class Engine:
         # core count appears to track the number of feedback contacts, but that
         # is one project's evidence and is an open ASK.
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING",
-                        "REGELAFSLUITER_OD", "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDVENTILATIESCHAKELING", "BRANDKLEP", "MELDINGEN_GROOT",
+                        "REGELAFSLUITER_OD", "VAV_SIGNAAL","KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDVENTILATIESCHAKELING", "BRANDKLEP", "MELDINGEN_GROOT",
                         "EC_VENTILATOR", "POMP_3_SIGNALEN", "POMP_2_SIGNALEN",
-                        "OVERWERKTIMER",
+                        "OVERWERKTIMER", "ENERGY_VALVE",
                         "REGELAFSLUITER_0_10V", "METING_ACTIEF",
                         "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
                         "MELDING"]
