@@ -12,12 +12,24 @@ from .schema import ClassifiedRow
 STRUCTURAL = {"REGELKAST", "NTB", "DERDEN", "BUS_INTERFACE", "BRANDMELDING"}
 
 
+def _pattern_matches(pat, text):
+    if "&" not in pat:
+        return pat in text
+    return all(p.strip() in text for p in pat.split("&"))
+
+
+def _pattern_length(pat):
+    if "&" not in pat:
+        return len(pat)
+    return sum(len(p.strip()) for p in pat.split("&"))
+
+
 def classify_row(norm, cfg):
     text = f"{norm.procescode} {norm.omschrijving} {norm.type} {norm.opmerking}".lower()
     flags = []
 
     # collect matches as (prio, len, type); primary = best
-    matches = [(prio, len(pat), ftype) for pat, ftype, prio in cfg.synonyms if pat in text]
+    matches = [(prio, _pattern_length(pat), ftype) for pat, ftype, prio in cfg.synonyms if _pattern_matches(pat, text)]
     seen, hits = set(), []
     for prio, ln, ftype in sorted(matches, key=lambda m: (-m[0], -m[1])):
         if ftype not in seen:

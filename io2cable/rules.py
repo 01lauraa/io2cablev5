@@ -213,12 +213,12 @@ class Engine:
         # core count appears to track the number of feedback contacts, but that
         # is one project's evidence and is an open ASK.
         sig_priority = ["SMOORAFSLUITER_KRACHT", "SMOORAFSLUITER", "KLEP_STURING_MELDING",
-                        "REGELAFSLUITER_OD", "VAV_SIGNAAL","KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDVENTILATIESCHAKELING", "BRANDKLEP", "MELDINGEN_GROOT",
-                        "EC_VENTILATOR", "POMP_3_SIGNALEN", "POMP_2_SIGNALEN",
-                        "OVERWERKTIMER", "ENERGY_VALVE",
-                        "REGELAFSLUITER_0_10V", "METING_ACTIEF",
-                        "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
-                        "MELDING"]
+                    "REGELAFSLUITER_OD", "REGELAFSLUITER_0_10V", "VAV_SIGNAAL", "KLEP_OD", "KLEP_OD_ZONDER_TERUGMELDING", "BRANDVENTILATIESCHAKELING", "BRANDKLEP", "MELDINGEN_GROOT",
+                    "EC_VENTILATOR", "POMP_3_SIGNALEN", "POMP_2_SIGNALEN",
+                    "OVERWERKTIMER", "ENERGY_VALVE",
+                    "TEMP_RV", "METING_ACTIEF",
+                    "METING_BUS", "METING_PASSIEF", "BEDRIJF_STORING", "VRIJGAVE", "STURING_0_10V",
+                    "MELDING"]
         sig_candidates = [prim] + [x for x in t[1:]]
         def _ok(f):
             # Each signal type requires the I/O that physically carries it.

@@ -1,66 +1,71 @@
-"""Patch io2cable/pipeline.py: restore section-banner grouping in write_cable_list.
-Run from the repo root: python patch_write_cable_list.py
-Then verify: git diff io2cable\\pipeline.py
+"""Patch io2cable/classify.py: add opt-in '&'-separated AND-pattern matching.
+Run from the repo root: python patch_classify_and_pattern.py
+Then verify: git diff io2cable\\classify.py
 """
 import re
 
-PATH = "io2cable/pipeline.py"
+PATH = "io2cable/classify.py"
 
-NEW_FUNC = '''def write_cable_list(result, cfg, path, rk_naam):
-    wb = Workbook()
-    ws = wb.active
-    ws.append(["nr", "onderdeel", "ws", "proces code", "kabel soort en doorsnede"])
-    for c in ws[1]:
-        c.font = Font(bold=True, color="FFFFFF", name="Arial", size=10)
-        c.fill = PatternFill("solid", start_color="1F4E78")
-    ws.append([])
-    ws.append(["", cfg.texts["VOEDINGEN"]]); ws.cell(ws.max_row, 2).font = BLUE
-    for i, r in enumerate(result["voedingen"], 1):
-        ws.append([i, r.onderdeel, r.ws, r.procescode, r.kabel])
-    ws.append([])
-    ws.append(["", cfg.texts["TOT_DERDEN"], result["tot_derden"]])
-    ws.append(["", cfg.texts["TOT_WS"], result["tot_ws"]])
-    for rr in (ws.max_row - 1, ws.max_row):
-        ws.cell(rr, 2).font = BOLD
-        ws.cell(rr, 3).font = Font(bold=True, color="0000FF", name="Arial", size=10)
-    ws.append([])
-    nr = 0
-    current_section = None
-    for r in result["devices"]:
-        if r.section != current_section:
-            if current_section is not None:
-                ws.append([])
-            ws.append(["", r.section]); ws.cell(ws.max_row, 2).font = BLUE
-            current_section = r.section
-        nr += 1
-        flag = " [?]" if r.flags else ""
-        ws.append([nr, r.onderdeel + flag, r.ws, r.procescode, r.kabel])
-    ws.append([])
-    ws.append(["", cfg.texts["ONDERSTATION"]]); ws.cell(ws.max_row, 2).font = BLUE
-    for r in result["onderstation"]:
-        nr += 1
-        ws.append([nr, r.onderdeel, r.ws, r.procescode, r.kabel])
-    for col, w in zip("ABCDE", (5, 46, 5, 12, 58)):
-        ws.column_dimensions[col].width = w
-    ws.freeze_panes = "A2"
-    wb.save(path)
+HELPERS = '''
+
+def _pattern_matches(pat, text):
+    if "&" not in pat:
+        return pat in text
+    return all(p.strip() in text for p in pat.split("&"))
+
+
+def _pattern_length(pat):
+    if "&" not in pat:
+        return len(pat)
+    return sum(len(p.strip()) for p in pat.split("&"))
 '''
 
 with open(PATH, encoding="utf-8") as f:
     src = f.read()
 
-# Match from 'def write_cable_list(' up to (not including) the next top-level 'def '
-pattern = re.compile(r"def write_cable_list\(.*?\n(?=def )", re.DOTALL)
-m = pattern.search(src)
-if not m:
-    raise SystemExit("Could not find write_cable_list in " + PATH + " -- nothing changed.")
+changed = False
 
-old_func = m.group(0)
-if "current_section" in old_func:
-    print("Already patched -- no change made.")
+# 1. Insert helpers right after the STRUCTURAL definition, if not already present.
+if "_pattern_matches" not in src:
+    marker = re.search(r'STRUCTURAL = \{[^\}]*\}\n', src)
+    if not marker:
+        raise SystemExit("Could not find the STRUCTURAL = {...} line -- nothing changed. "
+                          "Paste the actual line so the anchor can be fixed.")
+    insert_at = marker.end()
+    src = src[:insert_at] + HELPERS + src[insert_at:]
+    changed = True
+    print("Inserted _pattern_matches/_pattern_length after STRUCTURAL.")
 else:
-    new_src = src[:m.start()] + NEW_FUNC + "\n\n" + src[m.end():]
+    print("_pattern_matches already present -- skipping helper insertion.")
+
+# 2. Swap the matches= line to use the new helpers, if not already swapped.
+old_line = 'matches = [(prio, len(pat), ftype) for pat, ftype, prio in cfg.synonyms if pat in text]'
+new_line = 'matches = [(prio, _pattern_length(pat), ftype) for pat, ftype, prio in cfg.synonyms if _pattern_matches(pat, text)]'
+
+if old_line in src:
+    src = src.replace(old_line, new_line)
+    changed = True
+    print("Replaced the matches= line.")
+elif new_line in src:
+    print("matches= line already updated -- skipping.")
+else:
+    raise SystemExit(
+        "Could not find the expected matches= line (old or new form). "
+        "Nothing changed -- the file may already differ from what this patch expects. "
+        "Paste the current matches= line so the anchor can be fixed."
+    )
+
+if changed:
     with open(PATH, "w", encoding="utf-8") as f:
-        f.write(new_src)
-    print("Patched:", PATH)
-    print("Replaced", len(old_func.splitlines()), "lines with", len(NEW_FUNC.splitlines()), "lines.")
+        f.write(src)
+    print("Wrote", PATH)
+else:
+    print("No changes needed -- file already patched.")
+
+# Self-check: read back and confirm both pieces are actually there.
+with open(PATH, encoding="utf-8") as f:
+    verify = f.read()
+assert "_pattern_matches" in verify, "Post-write check FAILED: helper not found after save."
+assert "_pattern_length(pat)" in verify.split("matches = [")[1][:80], \
+    "Post-write check FAILED: matches= line not updated after save."
+print("Post-write verification passed.")
