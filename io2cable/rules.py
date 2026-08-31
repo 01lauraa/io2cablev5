@@ -52,6 +52,8 @@ def _feed_class(norm):
         return "400V_3F_zonder_N"   # frequency-controlled pumps: no N (rules v2)
     if "230" in v:
         return "230V_1F"
+    if norm.power_kw:
+        return "KW_ONLY"
     return None
 
 

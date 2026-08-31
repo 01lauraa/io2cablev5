@@ -39,6 +39,14 @@ def classify_row(norm, cfg):
     # DERDEN is a scope attribute, not a device class: never let it be primary
     if len(hits) > 1 and (hits[0] == "DERDEN" or (hits[0] == "REGELKAST" and "regelkast" not in norm.omschrijving.lower())):
         hits.append(hits.pop(0))
+    # 'Aandrijving regelafsluiter' with no real I/O is the valve actuator's
+    # nameplate line, not a device that needs its own cable -- normally it
+    # should emit nothing. If it DOES carry a signal (DI/DO/AI/AO), treat it
+    # exactly like a normal Regelafsluiter -- no separate cable rule needed,
+    # it already resolves to REGELAFSLUITER_0_10V via the existing synonym.
+    if hits and hits[0] == "REGELAFSLUITER_0_10V":
+        if not (norm.DI or norm.DO or norm.AI or norm.AO):
+            hits = []
 
     # A pump's signal cable follows the NUMBER of signals on the row, not the
     # pump type (Rick 2026-08-18, confirmed against the CCA dictionary and the
@@ -53,6 +61,8 @@ def classify_row(norm, cfg):
             hits.insert(0, "POMP_3_SIGNALEN")
         elif _n_sig == 2:
             hits.insert(0, "POMP_2_SIGNALEN")
+
+        
 
     # I/O-signature fallbacks when the dictionary is silent
     if not hits:

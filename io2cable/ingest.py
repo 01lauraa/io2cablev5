@@ -155,7 +155,8 @@ def parse_excel(path, rk="RK?", header_map=None, sheet=None, mr_only=True):
     rows, group = [], ""
     for i, r in enumerate(grid[hdr_i + 1:], start=hdr_i + 2):
         def get(f):
-            return r[cols[f]] if f in cols and cols[f] < len(r) else None
+            v = r[cols[f]] if f in cols and cols[f] < len(r) else None
+            return None if isinstance(v, str) and v.strip() in ("-", "–", "—") else v
         desc = str(get("omschrijving") or "").strip()
         if not desc:
             continue

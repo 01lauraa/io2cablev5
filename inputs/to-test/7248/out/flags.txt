@@ -1,0 +1,6 @@
+UNPAIRED brandschakelaar: Brandventilatieschakelaar In bij brand - expected an adjacent toevoer+afvoer pair, no cable emitted (inputs\to-test\7248\IO.xlsx:Table002 (Page 1):r86)
+UNPAIRED brandschakelaar: Brandventilatieschakelaar uit bij brand - expected an adjacent toevoer+afvoer pair, no cable emitted (inputs\to-test\7248\IO.xlsx:Table002 (Page 1):r87)
+Tracing scope: precedent = Erco feeds from the RK; the input remark may differ
+PANEL-INTERNAL (no field cable): Reset storingen (inputs\to-test\7248\IO.xlsx:Table002 (Page 1):r82)
+NO CABLE DERIVED: Storing urgent — types ['MELDING'] (inputs\to-test\7248\IO.xlsx:Table002 (Page 1):r83)
+NO CABLE DERIVED: Storing niet urgent — types ['MELDING'] (inputs\to-test\7248\IO.xlsx:Table002 (Page 1):r84)
